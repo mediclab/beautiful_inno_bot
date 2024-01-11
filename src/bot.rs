@@ -249,7 +249,7 @@ impl CallbackHandler {
         let path = format!(
             "/tmp/{}.{}",
             uuid::Uuid::new_v4(),
-            extension.to_str().unwrap_or_default()
+            extension.to_ascii_lowercase().to_str().unwrap_or_default()
         );
         let mut file = File::create(&path).await?;
 

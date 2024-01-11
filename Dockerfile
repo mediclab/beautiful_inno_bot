@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apk --no-cache add pkgconfig musl-dev openssl-dev clang-dev build-base make \
+RUN apk --no-cache add pkgconfig musl-dev openssl-dev clang-dev build-base make libheif-dev \
     && rm -rf /var/cache/apk/*
 
 RUN cargo build --release
@@ -21,7 +21,7 @@ LABEL description="Bot for posting photos with exif"
 
 COPY --from=builder /app/target/release/beautiful_inno_bot /usr/local/bin/beautiful_inno_bot
 
-RUN apk --no-cache add ca-certificates openssl libgcc libstdc++ \
+RUN apk --no-cache add ca-certificates openssl libgcc libstdc++ libheif \
     && rm -rf /var/cache/apk/*
 
 CMD ["beautiful_inno_bot"]
