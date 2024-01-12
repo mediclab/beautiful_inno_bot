@@ -55,4 +55,5 @@ jobs:
 
       - name: Curl for update stack on server
         uses: enflo/curl-action@master
-        with: -fs ${{ secrets.CURL_WEBHOOK_URL }}
+        with:
+          curl: -fs ${{ secrets.CURL_WEBHOOK_URL }}
