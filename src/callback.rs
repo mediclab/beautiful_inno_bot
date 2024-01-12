@@ -44,6 +44,7 @@ impl CallbackHandler {
     async fn approve(&self) -> anyhow::Result<()> {
         let doc = self.callback.message.as_ref().unwrap().document().unwrap();
         let doc_path = self.download_doc(&doc.to_owned().file.id).await?;
+        let photo_path = format!("/tmp/{}.jpg", Uuid::new_v4());
         let exif_info = ExifLoader::new(doc_path.to_owned());
 
         debug!("Debug fields: {}", exif_info.get_photo_info_string());
@@ -63,7 +64,6 @@ impl CallbackHandler {
 
         let upload = match doc.mime_type.as_ref().unwrap().subtype().as_str() {
             "heic" | "heif" => {
-                let photo_path = format!("{}_p.jpg", Uuid::new_v4());
                 let out = Command::new("heif-convert")
                     .args(["-q", "90"])
                     .arg(&doc_path)
@@ -84,10 +84,14 @@ impl CallbackHandler {
                     doc_path,
                 }
             }
-            _ => PhotoToUpload {
-                photo_path: Uuid::new_v4().to_string(),
-                doc_path,
-            },
+            _ => {
+                std::fs::copy(Path::new(&doc_path), Path::new(&photo_path)).unwrap_or_default();
+
+                PhotoToUpload {
+                    photo_path,
+                    doc_path,
+                }
+            }
         };
 
         if std::fs::metadata(&upload.photo_path)?.len() > 10 * 1024 * 1024 {
@@ -99,9 +103,15 @@ impl CallbackHandler {
             }
         }
 
-        let mut img = Image::new(&upload.photo_path);
         let thump_path = format!("/tmp/{}.jpg", Uuid::new_v4());
-        img.resize(320).save(&thump_path);
+        let thumb = if let Some(doc_thumb) = doc.to_owned().thumb {
+            InputFile::file_id(doc_thumb.file.id)
+        } else {
+            let mut img = Image::new(&upload.photo_path);
+            img.resize(320).save(&thump_path);
+
+            InputFile::file(Path::new(&thump_path))
+        };
 
         self.app
             .bot
@@ -118,7 +128,7 @@ impl CallbackHandler {
                 ChatId(self.app.group_id),
                 InputFile::file(Path::new(&upload.doc_path)),
             )
-            .thumb(InputFile::file(Path::new(&thump_path)))
+            .thumb(thumb)
             .await?;
 
         std::fs::remove_file(&upload.doc_path).unwrap_or_default();
