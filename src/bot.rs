@@ -58,11 +58,13 @@ impl MessageHandler {
                             self.app.bot
                                 .send_message(self.msg.chat.id, "😻 Спасибо за фотки! Отправил их на модерацию. Ищи свои фотографии в канале в ближайшее время!")
                                 .await?;
-                        } else {
-                            self.app.bot
-                                .send_message(self.msg.chat.id, "😔 Прости, я не могу обработать фотку больше 15 Мб. Кажется, это уже перебор.")
-                                .await?;
+
+                            return Ok(());
                         }
+
+                        self.app.bot
+                            .send_message(self.msg.chat.id, "😔 Прости, я не могу обработать фотку больше 15 Мб. Кажется, это уже перебор.")
+                            .await?;
                     }
                     _ => {
                         self.app.bot
@@ -71,11 +73,13 @@ impl MessageHandler {
                     }
                 }
             }
-        } else {
-            self.app.bot
-                .send_message(self.msg.chat.id, "😔 Прости, я принимаю фотки только в виде документов. Так не будет потери качества, и люди смогут скачать хорошую картинку.")
-                .await?;
+
+            return Ok(());
         }
+
+        self.app.bot
+            .send_message(self.msg.chat.id, "😔 Прости, я принимаю фотки только в виде документов. Так не будет потери качества, и люди смогут скачать хорошую картинку.")
+            .await?;
 
         Ok(())
     }
@@ -169,10 +173,14 @@ impl CallbackHandler {
         let doc = self.callback.message.as_ref().unwrap().document().unwrap();
         let doc_path = self.download_doc(&doc.to_owned().file.id).await?;
         let exif_info = ExifLoader::new(doc_path.to_owned());
+
+        debug!("Debug fields: {}", exif_info.get_photo_info_string());
+
         let caption = format!(
-            "📸 Снято на: {} {}\n\n{}",
+            "📸 Снято на: {} {}\nℹ️ {}\n\n👤 {}",
             exif_info.get_maker(),
             exif_info.get_model(),
+            exif_info.get_photo_info_string(),
             self.callback
                 .message
                 .as_ref()
@@ -185,7 +193,7 @@ impl CallbackHandler {
             "heic" | "heif" => {
                 let photo_path = format!("{}_p.jpg", &doc_path);
                 let out = Command::new("heif-convert")
-                    .args(["-q", "100"])
+                    .args(["-q", "90"])
                     .arg(&doc_path)
                     .arg(&photo_path)
                     .output()
@@ -225,6 +233,7 @@ impl CallbackHandler {
                 ChatId(self.app.group_id),
                 InputFile::file(PathBuf::from(&upload.doc_path)),
             )
+            .thumb(InputFile::file_id(doc.thumb.clone().unwrap().file.id))
             .await?;
 
         std::fs::remove_file(&upload.doc_path).unwrap_or_default();
