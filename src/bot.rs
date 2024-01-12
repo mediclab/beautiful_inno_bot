@@ -170,9 +170,15 @@ impl CallbackHandler {
         let doc_path = self.download_doc(&doc.to_owned().file.id).await?;
         let exif_info = ExifLoader::new(doc_path.to_owned());
         let caption = format!(
-            "Снято на: {} {}",
+            "📸 Снято на: {} {}\n\n{}",
             exif_info.get_maker(),
-            exif_info.get_model()
+            exif_info.get_model(),
+            self.callback
+                .message
+                .as_ref()
+                .unwrap()
+                .caption()
+                .unwrap_or_default()
         );
 
         let upload = match doc.mime_type.as_ref().unwrap().subtype().as_str() {
@@ -206,19 +212,19 @@ impl CallbackHandler {
 
         self.app
             .bot
-            .send_document(
-                ChatId(self.app.group_id),
-                InputFile::file(PathBuf::from(&upload.doc_path)),
-            )
-            .await?;
-
-        self.app
-            .bot
             .send_photo(
                 ChatId(self.app.group_id),
                 InputFile::file(PathBuf::from(&upload.photo_path)),
             )
             .caption(caption)
+            .await?;
+
+        self.app
+            .bot
+            .send_document(
+                ChatId(self.app.group_id),
+                InputFile::file(PathBuf::from(&upload.doc_path)),
+            )
             .await?;
 
         std::fs::remove_file(&upload.doc_path).unwrap_or_default();

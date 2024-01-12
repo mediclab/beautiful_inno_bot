@@ -21,7 +21,7 @@ LABEL description="Bot for posting photos with exif"
 
 COPY --from=builder /app/target/release/beautiful_inno_bot /usr/local/bin/beautiful_inno_bot
 
-RUN apk --no-cache add ca-certificates openssl libgcc libstdc++ libheif \
+RUN apk --no-cache add ca-certificates openssl libgcc libstdc++ libheif libheif-tools \
     && rm -rf /var/cache/apk/*
 
 CMD ["beautiful_inno_bot"]
