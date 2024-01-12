@@ -1,15 +1,21 @@
 #[macro_use]
 extern crate log;
 
-use crate::bot::{BotCommand, CallbackHandler, CommandHandler, MessageHandler};
+use callback::CallbackHandler;
+use command::{BotCommand, CommandHandler};
 use dotenv::dotenv;
+use message::MessageHandler;
 use std::sync::Arc;
 use teloxide::adaptors::DefaultParseMode;
 use teloxide::prelude::*;
 use teloxide::types::ParseMode;
 
 mod bot;
+mod callback;
+mod command;
 mod exif;
+mod image;
+mod message;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
