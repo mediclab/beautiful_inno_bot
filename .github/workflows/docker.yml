@@ -52,3 +52,7 @@ jobs:
           push: true
           tags: "${{ secrets.DOCKER_HOME_HOST }}/mediclab/beautiful_inno_bot:latest,${{ secrets.DOCKER_HOME_HOST }}/mediclab/beautiful_inno_bot:${{ env.app_version }}"
           platforms: linux/amd64,linux/arm64
+
+      - name: Curl for update stack on server
+        uses: enflo/curl-action@master
+        with: -fs ${{ secrets.CURL_WEBHOOK_URL }}
