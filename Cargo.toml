@@ -1,6 +1,6 @@
 [package]
 name = "beautiful_inno_bot"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.79"
 dotenv = "0.15.0"
+image = "0.24.7"
 kamadak-exif = "0.5.5"
 log = "0.4.20"
 mime = "0.3.17"
