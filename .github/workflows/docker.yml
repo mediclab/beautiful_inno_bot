@@ -55,4 +55,4 @@ jobs:
 
       - name: Curl for update stack on server
         run: |
-          curl -fs ${{ secrets.CURL_WEBHOOK_URL }}
+          curl -fs -X POST ${{ secrets.CURL_WEBHOOK_URL }}

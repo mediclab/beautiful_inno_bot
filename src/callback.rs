@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use std::thread::sleep;
@@ -8,6 +8,7 @@ use teloxide::net::Download;
 use teloxide::prelude::*;
 use teloxide::types::InputFile;
 use tokio::fs::File;
+use uuid::Uuid;
 
 use crate::bot::PhotoToUpload;
 use crate::exif::ExifLoader;
@@ -62,7 +63,7 @@ impl CallbackHandler {
 
         let upload = match doc.mime_type.as_ref().unwrap().subtype().as_str() {
             "heic" | "heif" => {
-                let photo_path = format!("{}_p.jpg", &doc_path);
+                let photo_path = format!("{}_p.jpg", Uuid::new_v4());
                 let out = Command::new("heif-convert")
                     .args(["-q", "90"])
                     .arg(&doc_path)
@@ -84,7 +85,7 @@ impl CallbackHandler {
                 }
             }
             _ => PhotoToUpload {
-                photo_path: doc_path.to_owned(),
+                photo_path: Uuid::new_v4().to_string(),
                 doc_path,
             },
         };
@@ -98,11 +99,15 @@ impl CallbackHandler {
             }
         }
 
+        let mut img = Image::new(&upload.photo_path);
+        let thump_path = format!("/tmp/{}.jpg", Uuid::new_v4());
+        img.resize(320).save(&thump_path);
+
         self.app
             .bot
             .send_photo(
                 ChatId(self.app.group_id),
-                InputFile::file(PathBuf::from(&upload.photo_path)),
+                InputFile::file(Path::new(&upload.photo_path)),
             )
             .caption(caption)
             .await?;
@@ -111,13 +116,14 @@ impl CallbackHandler {
             .bot
             .send_document(
                 ChatId(self.app.group_id),
-                InputFile::file(PathBuf::from(&upload.doc_path)),
+                InputFile::file(Path::new(&upload.doc_path)),
             )
-            .thumb(InputFile::file_id(doc.thumb.clone().unwrap().file.id))
+            .thumb(InputFile::file(Path::new(&thump_path)))
             .await?;
 
         std::fs::remove_file(&upload.doc_path).unwrap_or_default();
         std::fs::remove_file(&upload.photo_path).unwrap_or_default();
+        std::fs::remove_file(&thump_path).unwrap_or_default();
 
         self.app
             .bot

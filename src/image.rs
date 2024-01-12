@@ -25,6 +25,12 @@ impl Image {
         self
     }
 
+    pub fn resize(&mut self, px: u32) -> &mut Image {
+        self.im = self.im.thumbnail(px, px);
+
+        self
+    }
+
     pub fn save(&self, path: &str) -> bool {
         self.im.save(Path::new(&path)).is_ok()
     }
