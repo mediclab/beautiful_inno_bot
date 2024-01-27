@@ -1,3 +1,4 @@
+use anyhow::{bail, Error};
 use exif::{Exif, In, Reader, Tag, Value};
 use std::io::BufReader;
 
@@ -6,14 +7,14 @@ pub struct ExifLoader {
 }
 
 impl ExifLoader {
-    pub fn new(file_path: String) -> Self {
+    pub fn new(file_path: String) -> Result<Self, Error> {
         let file = std::fs::File::open(file_path).expect("I/O Error");
         let mut bufreader = BufReader::new(&file);
-        let exif = Reader::new()
-            .read_from_container(&mut bufreader)
-            .expect("Can't load Exif info");
 
-        ExifLoader { exif }
+        match Reader::new().read_from_container(&mut bufreader) {
+            Ok(exif) => Ok(ExifLoader { exif }),
+            Err(_) => bail!("Can't get Exif information!"),
+        }
     }
 
     pub fn get_maker(&self) -> String {
