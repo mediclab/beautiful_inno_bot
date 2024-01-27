@@ -45,22 +45,28 @@ impl CallbackHandler {
         let doc = self.callback.message.as_ref().unwrap().document().unwrap();
         let doc_path = self.download_doc(&doc.to_owned().file.id).await?;
         let photo_path = format!("/tmp/{}.jpg", Uuid::new_v4());
-        let exif_info = ExifLoader::new(doc_path.to_owned());
+        let author = self
+            .callback
+            .message
+            .as_ref()
+            .unwrap()
+            .caption()
+            .unwrap_or_default();
 
-        debug!("Debug fields: {}", exif_info.get_photo_info_string());
+        let caption = match ExifLoader::new(doc_path.to_owned()) {
+            Ok(exif_info) => {
+                debug!("Debug fields: {}", exif_info.get_photo_info_string());
 
-        let caption = format!(
-            "📸 Снято на: {} {}\nℹ️ {}\n\n👤 {}",
-            exif_info.get_maker(),
-            exif_info.get_model(),
-            exif_info.get_photo_info_string(),
-            self.callback
-                .message
-                .as_ref()
-                .unwrap()
-                .caption()
-                .unwrap_or_default()
-        );
+                format!(
+                    "📸 Снято на: {} {}\nℹ️ {}\n\n👤 {}",
+                    exif_info.get_maker(),
+                    exif_info.get_model(),
+                    exif_info.get_photo_info_string(),
+                    author
+                )
+            }
+            Err(_) => format!("👤 {}", author),
+        };
 
         let upload = match doc.mime_type.as_ref().unwrap().subtype().as_str() {
             "heic" | "heif" => {
