@@ -54,6 +54,11 @@ async fn main() {
     dotenv().ok();
     pretty_env_logger::init_timed();
 
+    let _guard = sentry::init(sentry::ClientOptions {
+        release: sentry::release_name!(),
+        ..Default::default()
+    });
+
     info!("Bot version: {}", VERSION);
 
     let app = Arc::new(Application::new());
