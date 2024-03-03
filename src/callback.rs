@@ -6,7 +6,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use teloxide::net::Download;
 use teloxide::prelude::*;
-use teloxide::types::InputFile;
+use teloxide::types::{InputFile, InputMedia, InputMediaDocument};
 use tokio::fs::File;
 use uuid::Uuid;
 
@@ -45,6 +45,7 @@ impl CallbackHandler {
         let doc = self.callback.message.as_ref().unwrap().document().unwrap();
         let doc_path = self.download_doc(&doc.to_owned().file.id).await?;
         let photo_path = format!("/tmp/{}.jpg", Uuid::new_v4());
+        let jpeg_path = format!("/tmp/{}.jpg", Uuid::new_v4());
         let author = self
             .callback
             .message
@@ -55,15 +56,31 @@ impl CallbackHandler {
 
         let caption = match ExifLoader::new(doc_path.to_owned()) {
             Ok(exif_info) => {
-                debug!("Debug fields: {}", exif_info.get_photo_info_string());
+                let mut messages: Vec<String> = Vec::with_capacity(5);
 
-                format!(
-                    "📸 Снято на: {} {}\nℹ️ {}\n\n👤 {}",
-                    exif_info.get_maker(),
-                    exif_info.get_model(),
-                    exif_info.get_photo_info_string(),
-                    author
-                )
+                if let Some(_lens) = exif_info.get_lens_model() {
+                    // messages.push(format!("📸 Снято на: {}", lens))
+                }
+
+                if let Some(maker_model) = exif_info.get_maker_model() {
+                    messages.push(format!("📸 Снято на: {}", maker_model))
+                }
+
+                if let Some(afp_info) = exif_info.get_photo_info_string() {
+                    messages.push(format!("ℹ️ {}", afp_info))
+                }
+
+                if let Some(_software) = exif_info.get_software() {
+                    // messages.push(format!("⚠️ Обработано в: {}", software))
+                }
+
+                // Add delimiter
+                if !messages.is_empty() {
+                    messages.push(String::new());
+                }
+
+                messages.push(format!("👤 {}", author));
+                messages.join("\n")
             }
             Err(_) => format!("👤 {}", author),
         };
@@ -85,26 +102,44 @@ impl CallbackHandler {
 
                 debug!("{:?}", out);
 
+                std::fs::copy(Path::new(&photo_path), Path::new(&jpeg_path)).unwrap_or_default();
+
                 PhotoToUpload {
                     photo_path,
                     doc_path,
+                    jpeg_path,
                 }
             }
             _ => {
                 std::fs::copy(Path::new(&doc_path), Path::new(&photo_path)).unwrap_or_default();
+                std::fs::copy(Path::new(&doc_path), Path::new(&jpeg_path)).unwrap_or_default();
 
                 PhotoToUpload {
                     photo_path,
                     doc_path,
+                    jpeg_path,
                 }
             }
         };
 
+        let mut img = Image::new(&upload.photo_path);
+
         if std::fs::metadata(&upload.photo_path)?.len() > 10 * 1024 * 1024 {
             info!("Photo is over 10 MB. Scailing on 0.5x");
 
-            let mut img = Image::new(&upload.photo_path);
             if !img.scale(0.5).save(&upload.photo_path) {
+                error!("Scaling failed!");
+            }
+        }
+
+        let (width, height) = img.get_size();
+
+        if width > 4000 || height > 4000 {
+            let scale = img.get_scaling(4000);
+
+            info!("Photo is over 4000 px. Scailing to {}x", &scale);
+
+            if !img.scale(scale).save(&upload.photo_path) {
                 error!("Scaling failed!");
             }
         }
@@ -113,7 +148,6 @@ impl CallbackHandler {
         let thumb = if let Some(doc_thumb) = doc.to_owned().thumb {
             InputFile::file_id(doc_thumb.file.id)
         } else {
-            let mut img = Image::new(&upload.photo_path);
             img.resize(320).save(&thump_path);
 
             InputFile::file(Path::new(&thump_path))
@@ -122,30 +156,56 @@ impl CallbackHandler {
         self.app
             .bot
             .send_photo(
-                ChatId(self.app.group_id),
+                ChatId(self.app.config.group_id),
                 InputFile::file(Path::new(&upload.photo_path)),
             )
             .caption(caption)
             .await?;
 
-        self.app
-            .bot
-            .send_document(
-                ChatId(self.app.group_id),
-                InputFile::file(Path::new(&upload.doc_path)),
-            )
-            .thumb(thumb)
-            .await?;
+        match doc.mime_type.as_ref().unwrap().subtype().as_str() {
+            "heic" | "heif" => {
+                self.app
+                    .bot
+                    .send_media_group(
+                        ChatId(self.app.config.group_id),
+                        vec![
+                            InputMedia::Document(
+                                InputMediaDocument::new(InputFile::file(Path::new(
+                                    &upload.doc_path,
+                                )))
+                                .thumb(thumb),
+                            ),
+                            InputMedia::Document(InputMediaDocument::new(InputFile::file(
+                                Path::new(&upload.jpeg_path),
+                            ))),
+                        ],
+                    )
+                    .await?;
+            }
+            _ => {
+                self.app
+                    .bot
+                    .send_document(
+                        ChatId(self.app.config.group_id),
+                        InputFile::file(Path::new(&upload.doc_path)),
+                    )
+                    .thumb(thumb)
+                    .await?;
+            }
+        }
 
-        std::fs::remove_file(&upload.doc_path).unwrap_or_default();
-        std::fs::remove_file(&upload.photo_path).unwrap_or_default();
+        if !upload.delete_all() {
+            warn!("Not all files have been deleted!")
+        }
+
         std::fs::remove_file(&thump_path).unwrap_or_default();
 
         self.app
             .bot
             .answer_callback_query(self.callback.id.clone())
             .text("Запостил")
-            .await?;
+            .await
+            .ok();
 
         Ok(())
     }
