@@ -13,7 +13,10 @@ RUN cargo build --release
 
 FROM alpine:latest
 
+MAINTAINER mediclab
+
 ARG BOT_VERSION=unknown
+ENV BOT_VERSION=$BOT_VERSION
 
 LABEL org.opencontainers.image.authors="mediclab"
 LABEL version=$BOT_VERSION
