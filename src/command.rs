@@ -50,7 +50,7 @@ impl CommandHandler {
             .bot
             .send_message(
                 self.msg.chat.id,
-                format!("Версия бота: {}", self.app.version),
+                format!("Версия бота: {}", &self.app.config.version),
             )
             .await?;
 

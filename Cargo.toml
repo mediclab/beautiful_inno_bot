@@ -1,19 +1,22 @@
 [package]
 name = "beautiful_inno_bot"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.79"
-dotenv = "0.15.0"
-image = "0.24.7"
-kamadak-exif = "0.5.5"
-log = "0.4.20"
-mime = "0.3.17"
-pretty_env_logger = "0.5.0"
-sentry = "0.32.1"
-teloxide = { version = "0.12.2", features = ["macros"] }
-tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
-uuid = "1.6.1"
+Inflector = "0.11"
+anyhow = "1.0"
+dotenv = "0.15"
+envconfig = "0.10"
+image = "0.24"
+kamadak-exif = "0.5"
+log = "0.4"
+mime = "0.3"
+pretty_env_logger = "0.5"
+regex = "1.10.3"
+sentry = "0.32"
+teloxide = { version = "0.12", features = ["macros"] }
+tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "macros"] }
+uuid = "1.7"

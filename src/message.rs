@@ -61,7 +61,7 @@ impl MessageHandler {
         self.app
             .bot
             .send_document(
-                ChatId(self.app.admin),
+                ChatId(self.app.config.admin),
                 InputFile::file_id(doc.to_owned().file.id),
             )
             .caption(format!(

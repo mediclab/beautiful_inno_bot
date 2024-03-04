@@ -1,14 +1,14 @@
 #[macro_use]
 extern crate log;
+extern crate inflector;
 
 use callback::CallbackHandler;
 use command::{BotCommand, CommandHandler};
 use dotenv::dotenv;
+use envconfig::Envconfig;
 use message::MessageHandler;
 use std::sync::Arc;
-use teloxide::adaptors::DefaultParseMode;
-use teloxide::prelude::*;
-use teloxide::types::ParseMode;
+use teloxide::{adaptors::DefaultParseMode, prelude::*, types::ParseMode};
 
 mod bot;
 mod callback;
@@ -17,28 +17,27 @@ mod exif;
 mod image;
 mod message;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
+#[derive(Clone)]
 pub struct Application {
     bot: DefaultParseMode<Bot>,
-    admin: i64,
-    group_id: i64,
-    version: String,
+    config: Config,
+}
+
+#[derive(Envconfig, Clone)]
+pub struct Config {
+    #[envconfig(from = "ADMIN_USER_ID")]
+    pub admin: i64,
+    #[envconfig(from = "GROUP_ID")]
+    pub group_id: i64,
+    #[envconfig(from = "CARGO_PKG_VERSION", default = "unknown")]
+    pub version: String,
 }
 
 impl Application {
     pub fn new() -> Self {
         Self {
             bot: Bot::from_env().parse_mode(ParseMode::Html),
-            admin: std::env::var("ADMIN_USER_ID")
-                .expect("Необходимо указать получателя, кому отправлять все кубы!")
-                .parse::<i64>()
-                .expect("Неверный ID поллучателя кубов!"),
-            group_id: std::env::var("GROUP_ID")
-                .expect("Необходимо указать группу в которую бот будет постить фото!")
-                .parse::<i64>()
-                .expect("Неверный ID группы!"),
-            version: VERSION.to_string(),
+            config: Config::init_from_env().expect("Can't load config"),
         }
     }
 }
@@ -59,9 +58,9 @@ async fn main() {
         ..Default::default()
     });
 
-    info!("Bot version: {}", VERSION);
-
     let app = Arc::new(Application::new());
+
+    info!("Bot version: {}", &app.config.version);
 
     info!("Starting dispatch...");
 

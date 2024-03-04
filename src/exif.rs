@@ -1,5 +1,6 @@
 use anyhow::{bail, Error};
 use exif::{Exif, In, Reader, Tag, Value};
+use inflector::Inflector;
 use std::io::BufReader;
 
 pub struct ExifLoader {
@@ -17,74 +18,130 @@ impl ExifLoader {
         }
     }
 
-    pub fn get_maker(&self) -> String {
+    pub fn get_maker(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::Make) {
-            return field;
+            return Some(field);
         }
 
-        String::new()
+        None
     }
 
-    pub fn get_model(&self) -> String {
+    pub fn get_model(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::Model) {
-            return field;
+            return Some(field);
         }
 
-        String::new()
+        None
     }
 
-    pub fn get_exposure_time(&self) -> String {
+    pub fn get_lens_model(&self) -> Option<String> {
+        if let Some(field) = self.get_field_string(&Tag::LensModel) {
+            return Some(field);
+        }
+
+        None
+    }
+
+    pub fn get_software(&self) -> Option<String> {
+        if let Some(field) = self.get_field_string(&Tag::Software) {
+            return Some(field);
+        }
+
+        None
+    }
+
+    pub fn get_exposure_time(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::ExposureTime) {
-            return format!("{}s", field);
+            return Some(format!("{}s", field));
         }
 
-        String::new()
+        None
     }
 
-    pub fn get_focal_number(&self) -> String {
+    pub fn get_focal_number(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::FNumber) {
-            return format!("f/{}", field);
+            return Some(format!("f/{}", field));
         }
 
-        String::new()
+        None
     }
 
-    pub fn get_focal_length(&self) -> String {
+    pub fn get_focal_length(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::FocalLength) {
-            return format!("{}mm", field);
+            return Some(format!("{}mm", field));
         }
 
-        String::new()
+        None
     }
 
-    pub fn get_iso(&self) -> String {
+    pub fn get_iso(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::PhotographicSensitivity) {
-            return format!("ISO{}", field);
+            return Some(format!("ISO{}", field));
         }
 
-        String::new()
+        None
     }
 
-    pub fn get_photo_info_string(&self) -> String {
-        format!(
-            "{} {} {} {}",
+    pub fn get_photo_info_string(&self) -> Option<String> {
+        let infos = vec![
             self.get_focal_number(),
             self.get_exposure_time(),
             self.get_focal_length(),
-            self.get_iso()
-        )
-        .split_whitespace()
-        .collect::<Vec<&str>>()
-        .join(" ")
+            self.get_iso(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<String>>();
+
+        if !infos.is_empty() {
+            return Some(infos.join(" "));
+        }
+
+        None
+    }
+
+    pub fn get_maker_model(&self) -> Option<String> {
+        let o_maker = self.get_maker();
+        let o_model = self.get_model();
+
+        if o_maker.is_none() && o_model.is_none() {
+            return None;
+        } else if o_maker.is_none() {
+            return Some(o_model.unwrap_or_default());
+        } else if o_model.is_none() {
+            return Some(o_maker.unwrap_or_default().to_title_case());
+        }
+
+        let model = o_model.unwrap_or_default();
+        let maker = o_maker.unwrap_or_default();
+
+        if model
+            .to_ascii_lowercase()
+            .contains(&maker.to_ascii_lowercase())
+        {
+            Some(model.to_string())
+        } else {
+            Some(format!("{} {}", maker.to_title_case(), model))
+        }
     }
 
     fn get_field_string(&self, tag: &Tag) -> Option<String> {
         if let Some(field) = self.exif.get_field(*tag, In::PRIMARY) {
             debug!("{} field: {:?}", field.tag, field.value);
             return match field.value {
-                Value::Rational(ref v) if !v.is_empty() => Some(field.display_value().to_string()),
+                Value::Rational(ref v) if !v.is_empty() => {
+                    if field.tag == Tag::ExposureTime {
+                        Some(format!("1/{:.0}", (v[0].denom as f64) / (v[0].num as f64)))
+                    } else {
+                        Some(field.display_value().to_string())
+                    }
+                }
                 Value::Ascii(ref v) if !v.is_empty() => {
-                    Some(field.display_value().to_string().replace('"', ""))
+                    if let Ok(val) = String::from_utf8(v[0].clone()) {
+                        Some(val.replace('"', ""))
+                    } else {
+                        None
+                    }
                 }
                 Value::Short(ref v) if !v.is_empty() => Some(field.display_value().to_string()),
                 _ => None,
