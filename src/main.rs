@@ -29,7 +29,7 @@ pub struct Config {
     pub admin: i64,
     #[envconfig(from = "GROUP_ID")]
     pub group_id: i64,
-    #[envconfig(from = "CARGO_PKG_VERSION", default = "unknown")]
+    #[envconfig(from = "BOT_VERSION", default = "unknown")]
     pub version: String,
 }
 
