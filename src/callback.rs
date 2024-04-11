@@ -43,9 +43,14 @@ impl CallbackHandler {
 
     async fn approve(&self) -> anyhow::Result<()> {
         let doc = self.callback.message.as_ref().unwrap().document().unwrap();
+        let doc_mime = doc.mime_type.as_ref().unwrap().subtype().as_str();
+        let doc_ext = match doc_mime {
+            "png" => "png",
+            _ => "jpg",
+        };
         let doc_path = self.download_doc(&doc.to_owned().file.id).await?;
-        let photo_path = format!("/tmp/{}.jpg", Uuid::new_v4());
-        let jpeg_path = format!("/tmp/{}.jpg", Uuid::new_v4());
+        let photo_path = format!("/tmp/{}.{}", Uuid::new_v4(), doc_ext);
+        let jpeg_path = format!("/tmp/{}.{}", Uuid::new_v4(), doc_ext);
         let author = self
             .callback
             .message
@@ -85,7 +90,7 @@ impl CallbackHandler {
             Err(_) => format!("👤 {}", author),
         };
 
-        let upload = match doc.mime_type.as_ref().unwrap().subtype().as_str() {
+        let upload = match doc_mime {
             "heic" | "heif" => {
                 let out = Command::new("heif-convert")
                     .args(["-q", "90"])
@@ -162,7 +167,7 @@ impl CallbackHandler {
             .caption(caption)
             .await?;
 
-        match doc.mime_type.as_ref().unwrap().subtype().as_str() {
+        match doc_mime {
             "heic" | "heif" => {
                 self.app
                     .bot
