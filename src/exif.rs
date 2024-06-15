@@ -115,10 +115,7 @@ impl ExifLoader {
         let model = o_model.unwrap_or_default();
         let maker = o_maker.unwrap_or_default();
 
-        if model
-            .to_ascii_lowercase()
-            .contains(&maker.to_ascii_lowercase())
-        {
+        if model.to_ascii_lowercase().contains(&maker.to_ascii_lowercase()) {
             Some(model.to_string())
         } else {
             Some(format!("{} {}", maker.to_title_case(), model))
@@ -130,10 +127,14 @@ impl ExifLoader {
             debug!("{} field: {:?}", field.tag, field.value);
             return match field.value {
                 Value::Rational(ref v) if !v.is_empty() => {
-                    if field.tag == Tag::ExposureTime {
-                        Some(format!("1/{:.0}", (v[0].denom as f64) / (v[0].num as f64)))
-                    } else {
-                        Some(field.display_value().to_string())
+                    let denom = v[0].denom as f64;
+                    let num = v[0].num as f64;
+
+                    match field.tag {
+                        Tag::ExposureTime => Some(format!("1/{:.0}", denom / num)),
+                        Tag::FNumber => Some(format!("{:.2}", num / denom)),
+                        Tag::FocalLength => Some(format!("{:.2}", num / denom)),
+                        _ => Some(field.display_value().to_string()),
                     }
                 }
                 Value::Ascii(ref v) if !v.is_empty() => {

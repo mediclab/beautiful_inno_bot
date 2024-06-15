@@ -5,10 +5,7 @@ use teloxide::prelude::*;
 use crate::Application;
 
 #[derive(BotCommands, Clone)]
-#[command(
-    rename_rule = "lowercase",
-    description = "Команды которые поддерживает бот:"
-)]
+#[command(rename_rule = "lowercase", description = "Команды которые поддерживает бот:")]
 pub enum BotCommand {
     #[command(description = "Информация о боте")]
     Help,
@@ -22,11 +19,7 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
-    pub async fn handle(
-        msg: Message,
-        cmd: BotCommand,
-        app: Arc<Application>,
-    ) -> anyhow::Result<()> {
+    pub async fn handle(msg: Message, cmd: BotCommand, app: Arc<Application>) -> anyhow::Result<()> {
         let handler = Self { app, msg };
 
         if !handler.msg.chat.is_private() {
@@ -48,10 +41,7 @@ impl CommandHandler {
     async fn help(&self) -> anyhow::Result<()> {
         self.app
             .bot
-            .send_message(
-                self.msg.chat.id,
-                format!("Версия бота: {}", &self.app.config.version),
-            )
+            .send_message(self.msg.chat.id, format!("Версия бота: {}", &self.app.config.version))
             .await?;
 
         Ok(())
