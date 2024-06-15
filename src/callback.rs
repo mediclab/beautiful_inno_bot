@@ -1,12 +1,14 @@
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use std::path::Path;
 use std::process::Command;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::time::Duration;
-use teloxide::net::Download;
-use teloxide::prelude::*;
-use teloxide::types::{InputFile, InputMedia, InputMediaDocument};
+use teloxide::{
+    net::Download,
+    prelude::*,
+    types::{InputFile, InputMedia, InputMediaDocument},
+};
 use tokio::fs::File;
 use uuid::Uuid;
 
@@ -21,7 +23,7 @@ pub struct CallbackHandler {
 }
 
 impl CallbackHandler {
-    pub async fn handle(callback: CallbackQuery, app: Arc<Application>) -> anyhow::Result<()> {
+    pub async fn handle(callback: CallbackQuery, app: Arc<Application>) -> Result<()> {
         let handler = Self { app, callback };
         let data = handler.callback.data.clone().unwrap_or_default();
 
@@ -51,13 +53,7 @@ impl CallbackHandler {
         let doc_path = self.download_doc(&doc.to_owned().file.id).await?;
         let photo_path = format!("/tmp/{}.{}", Uuid::new_v4(), doc_ext);
         let jpeg_path = format!("/tmp/{}.{}", Uuid::new_v4(), doc_ext);
-        let author = self
-            .callback
-            .message
-            .as_ref()
-            .unwrap()
-            .caption()
-            .unwrap_or_default();
+        let author = self.callback.message.as_ref().unwrap().caption().unwrap_or_default();
 
         let caption = match ExifLoader::new(doc_path.to_owned()) {
             Ok(exif_info) => {
@@ -167,6 +163,13 @@ impl CallbackHandler {
             .caption(caption)
             .await?;
 
+        let doc_path = Path::new(&upload.doc_path);
+        let doc_ext = doc_path
+            .extension()
+            .unwrap_or("heic".as_ref())
+            .to_str()
+            .unwrap_or_default();
+
         match doc_mime {
             "heic" | "heif" => {
                 self.app
@@ -175,14 +178,14 @@ impl CallbackHandler {
                         ChatId(self.app.config.group_id),
                         vec![
                             InputMedia::Document(
-                                InputMediaDocument::new(InputFile::file(Path::new(
-                                    &upload.doc_path,
-                                )))
+                                InputMediaDocument::new(
+                                    InputFile::file(doc_path).file_name(format!("original.{}", doc_ext)),
+                                )
                                 .thumb(thumb),
                             ),
-                            InputMedia::Document(InputMediaDocument::new(InputFile::file(
-                                Path::new(&upload.jpeg_path),
-                            ))),
+                            InputMedia::Document(InputMediaDocument::new(
+                                InputFile::file(Path::new(&upload.jpeg_path)).file_name("converted_original.jpg"),
+                            )),
                         ],
                     )
                     .await?;
@@ -192,7 +195,7 @@ impl CallbackHandler {
                     .bot
                     .send_document(
                         ChatId(self.app.config.group_id),
-                        InputFile::file(Path::new(&upload.doc_path)),
+                        InputFile::file(Path::new(&upload.doc_path)).file_name(format!("original.{}", doc_ext)),
                     )
                     .thumb(thumb)
                     .await?;
@@ -215,7 +218,7 @@ impl CallbackHandler {
         Ok(())
     }
 
-    async fn decline(&self) -> anyhow::Result<()> {
+    async fn decline(&self) -> Result<()> {
         self.app
             .bot
             .answer_callback_query(self.callback.id.clone())
@@ -225,7 +228,7 @@ impl CallbackHandler {
         Ok(())
     }
 
-    async fn download_doc(&self, doc_id: &String) -> anyhow::Result<String> {
+    async fn download_doc(&self, doc_id: &String) -> Result<String> {
         let doc = self.app.bot.get_file(doc_id).await?;
         let extension = Path::new(&doc.path).extension().unwrap_or_default();
         let path = format!(
