@@ -1,14 +1,14 @@
 use anyhow::{bail, Error};
 use exif::{Exif, In, Reader, Tag, Value};
 use inflector::Inflector;
-use std::io::BufReader;
+use std::{io::BufReader, path::Path};
 
 pub struct ExifLoader {
     exif: Exif,
 }
 
 impl ExifLoader {
-    pub fn new(file_path: String) -> Result<Self, Error> {
+    pub fn new(file_path: &Path) -> Result<Self, Error> {
         let file = std::fs::File::open(file_path).expect("I/O Error");
         let mut bufreader = BufReader::new(&file);
 
@@ -34,13 +34,13 @@ impl ExifLoader {
         None
     }
 
-    pub fn get_lens_model(&self) -> Option<String> {
-        if let Some(field) = self.get_field_string(&Tag::LensModel) {
-            return Some(field);
-        }
+    // pub fn get_lens_model(&self) -> Option<String> {
+    //     if let Some(field) = self.get_field_string(&Tag::LensModel) {
+    //         return Some(field);
+    //     }
 
-        None
-    }
+    //     None
+    // }
 
     pub fn get_software(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::Software) {
@@ -130,12 +130,14 @@ impl ExifLoader {
                     let denom = v[0].denom as f64;
                     let num = v[0].num as f64;
 
-                    match field.tag {
-                        Tag::ExposureTime => Some(format!("1/{:.0}", denom / num)),
-                        Tag::FNumber => Some(format!("{:.2}", num / denom)),
-                        Tag::FocalLength => Some(format!("{:.2}", num / denom)),
-                        _ => Some(field.display_value().to_string()),
-                    }
+                    let res = match field.tag {
+                        Tag::ExposureTime => format!("1/{:.0}", denom / num),
+                        Tag::FNumber => format!("{:.2}", num / denom),
+                        Tag::FocalLength => format!("{:.2}", num / denom),
+                        _ => field.display_value().to_string(),
+                    };
+
+                    Some(res)
                 }
                 Value::Ascii(ref v) if !v.is_empty() => {
                     if let Ok(val) = String::from_utf8(v[0].clone()) {

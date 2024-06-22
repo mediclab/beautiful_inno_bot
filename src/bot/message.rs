@@ -1,24 +1,32 @@
-use crate::bot::get_user_text;
-use crate::Application;
-use std::sync::Arc;
+use crate::bot::types::{CallbackData, CallbackOperation};
+use crate::bot::{Bot, BotManager};
+use crate::db::entity::prelude::{Ban, Photos, Users};
+use crate::types::CanMention;
+use serde_json::json;
 use teloxide::prelude::*;
 use teloxide::types::{Document, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, MessageKind};
 
 pub struct MessageHandler {
-    pub app: Arc<Application>,
+    pub bot: Bot,
     pub msg: Message,
 }
 
 const MAX_FILE_SIZE: u32 = 15 * 1024 * 1024;
 
 impl MessageHandler {
-    pub async fn handle(msg: Message, app: Arc<Application>) -> anyhow::Result<()> {
-        let handler = Self { app, msg };
+    pub async fn handle(bot: Bot, msg: Message) -> anyhow::Result<()> {
+        let handler = Self { bot, msg };
+
+        if Ban::exists(handler.msg.chat.id.0).await {
+            return Ok(());
+        }
+
+        if let Some(u) = handler.msg.from.as_ref() {
+            Users::add(u.clone().into()).await;
+        }
 
         if let MessageKind::Common(_) = handler.msg.kind {
-            if handler.msg.chat.is_private() {
-                handler.private().await?;
-            }
+            handler.private().await?;
         }
 
         Ok(())
@@ -33,8 +41,7 @@ impl MessageHandler {
                             return self.send_to_moderation(doc).await;
                         }
 
-                        self.app
-                            .bot
+                        self.bot
                             .send_message(
                                 self.msg.chat.id,
                                 "😔 Прости, я не могу обработать фотку больше 15 Мб. Кажется, это уже перебор.",
@@ -42,8 +49,7 @@ impl MessageHandler {
                             .await?;
                     }
                     _ => {
-                        self.app
-                            .bot
+                        self.bot
                             .send_message(
                                 self.msg.chat.id,
                                 "😔 Прости, я не могу понять что это за тип файла. Кажется, это даже не картинка.",
@@ -56,7 +62,7 @@ impl MessageHandler {
             return Ok(());
         }
 
-        self.app.bot
+        self.bot
             .send_message(self.msg.chat.id, "😔 Прости, я принимаю фотки только в виде документов. Так не будет потери качества, и люди смогут скачать хорошую картинку.")
             .await?;
 
@@ -64,21 +70,42 @@ impl MessageHandler {
     }
 
     async fn send_to_moderation(&self, doc: &Document) -> anyhow::Result<()> {
-        self.app
+        let bot = BotManager::global();
+        let model = match Photos::add(self.msg.clone().into()).await {
+            Some(m) => m,
+            None => {
+                error!("Photo not added");
+                return Ok(());
+            }
+        };
+
+        let msg = self
             .bot
-            .send_document(
-                ChatId(self.app.config.admin),
-                InputFile::file_id(doc.to_owned().file.id),
-            )
-            .caption(format!("Автор: {}", get_user_text(self.msg.from().unwrap())))
+            .send_document(ChatId(bot.get_admin_id()), InputFile::file_id(doc.to_owned().file.id))
+            .caption(format!("Автор: {}", self.msg.from.as_ref().unwrap().mention_or_url()))
             .reply_markup(InlineKeyboardMarkup::new(vec![vec![
-                InlineKeyboardButton::callback("👍 Запостить", "approve"),
-                InlineKeyboardButton::callback("👎 Отказать", "decline"),
+                InlineKeyboardButton::callback(
+                    "👍 Запостить",
+                    json!(CallbackData {
+                        operation: CallbackOperation::Approve,
+                        document: model.uuid
+                    })
+                    .to_string(),
+                ),
+                InlineKeyboardButton::callback(
+                    "👎 Отказать",
+                    json!(CallbackData {
+                        operation: CallbackOperation::Decline,
+                        document: model.uuid
+                    })
+                    .to_string(),
+                ),
             ]]))
             .await?;
 
-        self.app
-            .bot
+        model.update_msg_id(msg.id.0).await;
+
+        self.bot
             .send_message(
                 self.msg.chat.id,
                 "😻 Спасибо за фотки! Отправил их на модерацию. Ищи свои фотографии в канале в ближайшее время!",

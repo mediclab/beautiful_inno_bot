@@ -7,9 +7,9 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn new(path: &str) -> Self {
+    pub fn new(path: &Path) -> Self {
         Image {
-            im: img::open(Path::new(&path)).unwrap(),
+            im: img::open(path).unwrap(),
         }
     }
 
@@ -47,7 +47,7 @@ impl Image {
         }
     }
 
-    pub fn save(&self, path: &str) -> bool {
-        self.im.save(Path::new(&path)).is_ok()
+    pub fn save(&self, path: &Path) -> bool {
+        self.im.save(path).is_ok()
     }
 }
