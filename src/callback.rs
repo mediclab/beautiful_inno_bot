@@ -88,7 +88,7 @@ impl CallbackHandler {
 
         let upload = match doc_mime {
             "heic" | "heif" => {
-                let out = Command::new("heif-convert")
+                let out = Command::new("heif-dec")
                     .args(["-q", "90"])
                     .arg(&doc_path)
                     .arg(&photo_path)

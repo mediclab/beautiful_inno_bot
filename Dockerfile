@@ -11,7 +11,7 @@ RUN apk --no-cache add pkgconfig musl-dev openssl-dev clang-dev build-base make 
 
 RUN cargo build --release
 
-FROM alpine:latest
+FROM alpine:edge
 
 MAINTAINER mediclab
 
