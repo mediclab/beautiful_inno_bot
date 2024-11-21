@@ -1,42 +1,42 @@
 #[macro_use]
 extern crate log;
+extern crate core;
 extern crate inflector;
 
-use callback::CallbackHandler;
-use command::{BotCommand, CommandHandler};
+use crate::bot::{BotConfig, BotManager};
+use crate::redis::{RedisConfig, RedisManager};
 use dotenv::dotenv;
 use envconfig::Envconfig;
-use message::MessageHandler;
 use std::sync::Arc;
-use teloxide::{adaptors::DefaultParseMode, prelude::*, types::ParseMode};
+use teloxide::prelude::*;
 
 mod bot;
-mod callback;
-mod command;
+mod db;
 mod exif;
 mod image;
-mod message;
+mod redis;
+mod types;
 
 #[derive(Clone)]
 pub struct Application {
-    bot: DefaultParseMode<Bot>,
     config: Config,
 }
 
 #[derive(Envconfig, Clone)]
 pub struct Config {
-    #[envconfig(from = "ADMIN_USER_ID")]
-    pub admin: i64,
-    #[envconfig(from = "GROUP_ID")]
-    pub group_id: i64,
+    #[envconfig(from = "DATABASE_URL")]
+    pub db_url: String,
     #[envconfig(from = "BOT_VERSION", default = "unknown")]
     pub version: String,
+    #[envconfig(nested)]
+    pub bot_config: BotConfig,
+    #[envconfig(nested)]
+    pub redis_config: RedisConfig,
 }
 
 impl Application {
     pub fn new() -> Self {
         Self {
-            bot: Bot::from_env().parse_mode(ParseMode::Html),
             config: Config::init_from_env().expect("Can't load config"),
         }
     }
@@ -60,26 +60,22 @@ async fn main() {
 
     let app = Arc::new(Application::new());
 
+    let db = db::Database::new(&app.config.db_url).await;
+    let bot = bot::BotManager::new(&app.config.bot_config);
+    let redis = RedisManager::new(&app.config.redis_config);
+    db.migrate().await.expect("Can't migrate");
+
+    db::INSTANCE.set(db).expect("Can't set database");
+    bot::INSTANCE.set(bot).expect("Can't set bot");
+    redis::INSTANCE.set(redis).expect("Can't set redis");
+
     info!("Bot version: {}", &app.config.version);
 
-    info!("Starting dispatch...");
+    info!("Starting subscriber...");
+    RedisManager::global().subscriber(&app.config.bot_config).await;
 
-    Dispatcher::builder(
-        app.bot.clone(),
-        dptree::entry()
-            .branch(
-                Update::filter_message()
-                    .filter_command::<BotCommand>()
-                    .endpoint(CommandHandler::handle),
-            )
-            .branch(Update::filter_message().endpoint(MessageHandler::handle))
-            .branch(Update::filter_callback_query().endpoint(CallbackHandler::handle)),
-    )
-    .dependencies(dptree::deps![Arc::clone(&app)])
-    .enable_ctrlc_handler()
-    .build()
-    .dispatch()
-    .await;
+    info!("Starting dispatch...");
+    BotManager::global().dispatch(dptree::deps![Arc::clone(&app)]).await;
 
     info!("Good Bye!");
 }

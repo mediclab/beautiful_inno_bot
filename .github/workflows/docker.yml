@@ -47,7 +47,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          file: ./Dockerfile
+          file: ./Dockerfile-prod
           build-args: "BOT_VERSION=${{ env.app_version }}"
           push: true
           tags: "${{ secrets.DOCKER_HOME_HOST }}/mediclab/beautiful_inno_bot:latest,${{ secrets.DOCKER_HOME_HOST }}/mediclab/beautiful_inno_bot:${{ env.app_version }}"
