@@ -1,5 +1,8 @@
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate rust_i18n;
+
 extern crate core;
 extern crate inflector;
 
@@ -8,7 +11,10 @@ use crate::redis::{RedisConfig, RedisManager};
 use dotenv::dotenv;
 use envconfig::Envconfig;
 use std::sync::Arc;
-use teloxide::prelude::*;
+use teloxide::{
+    dispatching::dialogue::{serializer::Json, RedisStorage},
+    prelude::*,
+};
 
 mod bot;
 mod db;
@@ -48,6 +54,8 @@ impl Default for Application {
     }
 }
 
+i18n!("locales", fallback = "ru");
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -75,7 +83,14 @@ async fn main() {
     RedisManager::global().subscriber(&app.config.bot_config).await;
 
     info!("Starting dispatch...");
-    BotManager::global().dispatch(dptree::deps![Arc::clone(&app)]).await;
+    BotManager::global()
+        .dispatch(dptree::deps![
+            Arc::clone(&app),
+            RedisStorage::open(&app.config.redis_config.url, Json)
+                .await
+                .expect("Can't connect dialogues on redis")
+        ])
+        .await;
 
     info!("Good Bye!");
 }

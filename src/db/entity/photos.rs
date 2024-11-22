@@ -63,10 +63,7 @@ impl Entity {
     }
 
     pub async fn get_by_msg_id(msg_id: i32) -> Option<Model> {
-        let res = Self::find()
-            .filter(Column::MsgId.eq(msg_id))
-            .one(Database::global().connection())
-            .await;
+        let res = Self::find().filter(Column::MsgId.eq(msg_id)).one(Database::global().connection()).await;
 
         res.unwrap_or_else(|e| {
             error!("Can't get photo from database: {e}");
@@ -82,20 +79,14 @@ impl Model {
         model.posted_at = Set(Some(Utc::now().naive_utc()));
         model.channel_msg_id = Set(Some(msg_id as i64));
 
-        Entity::update(model)
-            .exec(Database::global().connection())
-            .await
-            .is_ok()
+        Entity::update(model).exec(Database::global().connection()).await.is_ok()
     }
 
     pub async fn update_msg_id(&self, msg_id: i32) -> bool {
         let mut model = self.clone().into_active_model();
         model.msg_id = Set(Some(msg_id as i64));
 
-        Entity::update(model)
-            .exec(Database::global().connection())
-            .await
-            .is_ok()
+        Entity::update(model).exec(Database::global().connection()).await.is_ok()
     }
 
     pub async fn user(&self) -> super::users::Model {

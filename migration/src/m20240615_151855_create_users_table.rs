@@ -15,11 +15,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Users::Username).string_len(33).null())
                     .col(ColumnDef::new(Users::Firstname).string_len(65).not_null())
                     .col(ColumnDef::new(Users::Lastname).string_len(65).null())
-                    .col(
-                        ColumnDef::new(Users::CreatedAt)
-                            .timestamp()
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(ColumnDef::new(Users::CreatedAt).timestamp().default(Expr::current_timestamp()))
                     .to_owned(),
             )
             .await

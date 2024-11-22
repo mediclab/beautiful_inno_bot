@@ -1,15 +1,11 @@
-use crate::bot::callback::CallbackHandler;
-use crate::bot::command::{BotCommand, CommandHandler};
-use crate::bot::message::MessageHandler;
 use envconfig::Envconfig;
 use once_cell::sync::OnceCell;
-use std::path::Path;
-use std::thread::sleep;
-use std::time::Duration;
+use serde::{Deserialize, Serialize};
+use std::{path::Path, thread::sleep, time::Duration};
 use teloxide::{
     adaptors::DefaultParseMode,
     dispatching::{
-        // dialogue::{serializer::Json, RedisStorage},
+        dialogue::{serializer::Json, RedisStorage},
         Dispatcher,
     },
     dptree,
@@ -21,12 +17,24 @@ use tokio::fs::File;
 
 mod callback;
 mod command;
+mod dialogue;
+pub(super) mod markups;
 mod message;
-pub mod types;
+pub(super) mod traits;
+pub(super) mod types;
 
 pub static INSTANCE: OnceCell<BotManager> = OnceCell::new();
 
 pub type Bot = DefaultParseMode<teloxide::Bot>;
+pub type BotDialogue = Dialogue<GlobalState, RedisStorage<Json>>;
+
+#[derive(Clone, Default, Debug, Serialize, Deserialize)]
+pub enum GlobalState {
+    #[default]
+    Idle,
+    DeclinePhoto(dialogue::decline_photo::State),
+    BanUser(dialogue::ban_user::State),
+}
 
 #[derive(Envconfig, Clone, Debug)]
 pub struct BotConfig {
@@ -74,18 +82,10 @@ impl BotManager {
         Dispatcher::builder(
             self.bot.clone(),
             dptree::entry()
-                .branch(
-                    Update::filter_message()
-                        .filter(|m: Message| m.chat.is_private())
-                        .filter_command::<BotCommand>()
-                        .endpoint(CommandHandler::handle),
-                )
-                .branch(
-                    Update::filter_message()
-                        .filter(|m: Message| m.chat.is_private())
-                        .endpoint(MessageHandler::handle),
-                )
-                .branch(Update::filter_callback_query().endpoint(CallbackHandler::handle)),
+                .branch(dialogue::scheme())
+                .branch(command::scheme())
+                .branch(message::scheme())
+                .branch(callback::scheme()),
         )
         .dependencies(deps)
         .enable_ctrlc_handler()
@@ -100,11 +100,7 @@ impl BotManager {
 
         self.bot.download_file(&doc.path, &mut file).await?;
         sleep(Duration::from_millis(50)); // Sometimes downloading is very fast
-        debug!(
-            "Filesize {} is = {}",
-            save_path.to_str().unwrap(),
-            std::fs::metadata(save_path)?.len()
-        );
+        debug!("Filesize {} is = {}", save_path.to_str().unwrap(), std::fs::metadata(save_path)?.len());
 
         Ok(save_path.to_str().unwrap().to_string())
     }

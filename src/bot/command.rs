@@ -2,8 +2,19 @@ use crate::bot::{Bot, BotManager};
 use crate::db::entity::prelude::{Ban, Photos};
 use crate::Application;
 use std::sync::Arc;
-use teloxide::macros::BotCommands;
-use teloxide::prelude::*;
+use teloxide::{
+    dispatching::{
+        dialogue::{serializer::Json, RedisStorage},
+        UpdateHandler,
+    },
+    macros::BotCommands,
+    prelude::*,
+};
+
+use super::dialogue::ban_user::State;
+use super::dialogue::types::BanUser;
+use super::traits::DialogueContext;
+use super::{BotDialogue, GlobalState};
 
 #[derive(BotCommands, Clone)]
 #[command(rename_rule = "lowercase", description = "Команды которые поддерживает бот:")]
@@ -20,11 +31,12 @@ pub struct CommandHandler {
     pub app: Arc<Application>,
     pub bot: Bot,
     pub msg: Message,
+    pub dialogue: BotDialogue,
 }
 
 impl CommandHandler {
-    pub async fn handle(bot: Bot, msg: Message, cmd: BotCommand, app: Arc<Application>) -> anyhow::Result<()> {
-        let handler = Self { app, bot, msg };
+    pub async fn handle(bot: Bot, msg: Message, cmd: BotCommand, app: Arc<Application>, dialogue: BotDialogue) -> anyhow::Result<()> {
+        let handler = Self { app, bot, msg, dialogue };
 
         if !handler.msg.chat.is_private() {
             return Ok(());
@@ -58,31 +70,49 @@ impl CommandHandler {
     }
 
     async fn start(&self) -> anyhow::Result<()> {
-        self.bot
-            .send_message(self.msg.chat.id, "🤟 Привет, иннополисянин!\n\nРад, что ты заглянул!\n\nПрисылай сюда свои фотки города в виде файлов, я их обработаю и после небольшой модерации я их выложу в канал:\nhttps://t.me/beautiful_innopolis\n\nНе переживай, все сделаю в лучшем виде! 👌")
-            .await?;
+        self.bot.send_message(self.msg.chat.id, t!("messages.start_greeting")).await?;
 
         Ok(())
     }
 
     async fn ban(&self) -> anyhow::Result<()> {
         let manager = BotManager::global();
+        let cmd_user = self.msg.from.as_ref().unwrap().id.0 as i64;
 
-        if manager.admin_id != self.msg.from.as_ref().unwrap().id.0 as i64 {
+        if manager.admin_id != cmd_user {
             return Ok(());
         }
 
         if let Some(reply) = self.msg.reply_to_message() {
             let photo = Photos::get_by_msg_id(reply.id.0).await;
-            Ban::user(photo.unwrap().user_id, "Причина не указана").await;
 
-            self.bot.send_message(self.msg.chat.id, "Пользователь забанен").await?;
+            let state = BanUser {
+                user_id: photo.unwrap().user_id,
+                ..Default::default()
+            };
 
-            self.bot.delete_message(self.msg.chat.id, reply.id).await?;
+            if state.set(cmd_user).await {
+                self.dialogue.update(GlobalState::BanUser(State::Reason)).await?;
+
+                self.bot
+                    .send_message(self.msg.chat.id, "Введите причину бана:")
+                    .reply_markup(super::markups::get_cancel_markup())
+                    .await?;
+            };
         }
 
         self.bot.delete_message(self.msg.chat.id, self.msg.id).await?;
 
         Ok(())
     }
+}
+
+pub fn scheme() -> UpdateHandler<anyhow::Error> {
+    dptree::entry().branch(
+        Update::filter_message()
+            .enter_dialogue::<Message, RedisStorage<Json>, GlobalState>()
+            .filter(|m: Message| m.chat.is_private())
+            .filter_command::<BotCommand>()
+            .endpoint(CommandHandler::handle),
+    )
 }

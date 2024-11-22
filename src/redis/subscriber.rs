@@ -29,8 +29,9 @@ impl MessageHandler {
                     self.approve(doc).await?;
                 }
                 CallbackOperation::Decline => {
-                    self.decline(doc).await?;
+                    self.decline(doc, &message.reason).await?;
                 }
+                _ => {}
             };
         } else {
             error!("Can't find photo by uuid = {}", message.id);
@@ -76,10 +77,7 @@ impl MessageHandler {
         let photo = InputFile::file(photo_path);
         let thumb = InputFile::file(thumb_path);
 
-        let msg = bot
-            .send_photo(ChatId(self.bot_manager.get_group_id()), photo)
-            .caption(caption)
-            .await?;
+        let msg = bot.send_photo(ChatId(self.bot_manager.get_group_id()), photo).caption(caption).await?;
 
         match file_type {
             FileType::Heic => {
@@ -108,11 +106,15 @@ impl MessageHandler {
         Ok(())
     }
 
-    async fn decline(&self, model: &Model) -> Result<()> {
+    async fn decline(&self, model: &Model, reason: &Option<String>) -> Result<()> {
         let bot = self.bot_manager.get_bot();
 
-        bot.send_message(ChatId(model.user_id), "Извините, Ваше фото не прошло модерацию :(")
-            .await?;
+        if let Some(r) = reason {
+            bot.send_message(ChatId(model.user_id), t!("messages.photo_was_declined_by_reason", reason = r))
+                .await?;
+        } else {
+            bot.send_message(ChatId(model.user_id), t!("messages.photo_was_declined")).await?;
+        };
 
         Ok(())
     }

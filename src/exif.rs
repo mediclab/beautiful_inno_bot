@@ -83,15 +83,10 @@ impl ExifLoader {
     }
 
     pub fn get_photo_info_string(&self) -> Option<String> {
-        let infos = vec![
-            self.get_focal_number(),
-            self.get_exposure_time(),
-            self.get_focal_length(),
-            self.get_iso(),
-        ]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<String>>();
+        let infos = vec![self.get_focal_number(), self.get_exposure_time(), self.get_focal_length(), self.get_iso()]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<String>>();
 
         if !infos.is_empty() {
             return Some(infos.join(" "));
