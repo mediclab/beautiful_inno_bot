@@ -3,8 +3,16 @@ use crate::bot::{Bot, BotManager};
 use crate::db::entity::prelude::{Ban, Photos, Users};
 use crate::types::CanMention;
 use serde_json::json;
-use teloxide::prelude::*;
-use teloxide::types::{Document, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, MessageKind};
+use teloxide::{
+    dispatching::{
+        dialogue::{serializer::Json, RedisStorage},
+        UpdateHandler,
+    },
+    prelude::*,
+    types::{Document, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, MessageKind},
+};
+
+use super::GlobalState;
 
 pub struct MessageHandler {
     pub bot: Bot,
@@ -41,20 +49,10 @@ impl MessageHandler {
                             return self.send_to_moderation(doc).await;
                         }
 
-                        self.bot
-                            .send_message(
-                                self.msg.chat.id,
-                                "😔 Прости, я не могу обработать фотку больше 15 Мб. Кажется, это уже перебор.",
-                            )
-                            .await?;
+                        self.bot.send_message(self.msg.chat.id, t!("messages.max_filesize_reached")).await?;
                     }
                     _ => {
-                        self.bot
-                            .send_message(
-                                self.msg.chat.id,
-                                "😔 Прости, я не могу понять что это за тип файла. Кажется, это даже не картинка.",
-                            )
-                            .await?;
+                        self.bot.send_message(self.msg.chat.id, t!("messages.unknown_filetype")).await?;
                     }
                 }
             }
@@ -62,9 +60,7 @@ impl MessageHandler {
             return Ok(());
         }
 
-        self.bot
-            .send_message(self.msg.chat.id, "😔 Прости, я принимаю фотки только в виде документов. Так не будет потери качества, и люди смогут скачать хорошую картинку.")
-            .await?;
+        self.bot.send_message(self.msg.chat.id, t!("messages.documents_only")).await?;
 
         Ok(())
     }
@@ -88,7 +84,7 @@ impl MessageHandler {
                     "👍 Запостить",
                     json!(CallbackData {
                         operation: CallbackOperation::Approve,
-                        document: model.uuid
+                        document: Some(model.uuid)
                     })
                     .to_string(),
                 ),
@@ -96,7 +92,7 @@ impl MessageHandler {
                     "👎 Отказать",
                     json!(CallbackData {
                         operation: CallbackOperation::Decline,
-                        document: model.uuid
+                        document: Some(model.uuid)
                     })
                     .to_string(),
                 ),
@@ -105,13 +101,17 @@ impl MessageHandler {
 
         model.update_msg_id(msg.id.0).await;
 
-        self.bot
-            .send_message(
-                self.msg.chat.id,
-                "😻 Спасибо за фотки! Отправил их на модерацию. Ищи свои фотографии в канале в ближайшее время!",
-            )
-            .await?;
+        self.bot.send_message(self.msg.chat.id, t!("messages.thanks_for_send")).await?;
 
         Ok(())
     }
+}
+
+pub fn scheme() -> UpdateHandler<anyhow::Error> {
+    dptree::entry().branch(
+        Update::filter_message()
+            .enter_dialogue::<Message, RedisStorage<Json>, GlobalState>()
+            .filter(|m: Message| m.chat.is_private())
+            .endpoint(MessageHandler::handle),
+    )
 }

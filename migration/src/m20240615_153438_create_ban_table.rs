@@ -20,11 +20,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Ban::UserId).big_integer().not_null())
                     .col(ColumnDef::new(Ban::Reason).string().null())
-                    .col(
-                        ColumnDef::new(Ban::BannedAt)
-                            .timestamp()
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(ColumnDef::new(Ban::BannedAt).timestamp().default(Expr::current_timestamp()))
                     .to_owned(),
             )
             .await?;

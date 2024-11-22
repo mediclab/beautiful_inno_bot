@@ -8,22 +8,29 @@ use uuid::Uuid;
 use crate::exif::ExifLoader;
 use crate::image::Image;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub enum CallbackOperation {
     #[serde(rename = "a")]
     Approve,
     #[serde(rename = "d")]
     Decline,
-    // #[serde(rename = "b")]
-    // Ban,
+    #[default]
+    #[serde(rename = "c")]
+    Cancel,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CallbackData {
     #[serde(rename = "op")]
     pub operation: CallbackOperation,
-    #[serde(rename = "doc")]
-    pub document: Uuid,
+    #[serde(rename = "doc", skip_serializing_if = "Option::is_none")]
+    pub document: Option<Uuid>,
+}
+
+impl CallbackData {
+    pub fn new(operation: CallbackOperation) -> Self {
+        Self { operation, document: None }
+    }
 }
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq)]
@@ -132,10 +139,7 @@ impl PhotoToUpload {
 
     pub fn convert(&self) -> Result<(), BotError> {
         if !self.doc_path.exists() {
-            return Err(BotError::FileNotExists(format!(
-                "File {} not exists!",
-                self.doc_path.to_string_lossy()
-            )));
+            return Err(BotError::FileNotExists(format!("File {} not exists!", self.doc_path.to_string_lossy())));
         }
 
         if self.file_type == FileType::Heic {
@@ -149,10 +153,7 @@ impl PhotoToUpload {
                 if !output.status.success() {
                     error!("Convert failed: {:?}", output);
 
-                    return Err(BotError::ConvertingFailed(format!(
-                        "Converting failed: {}",
-                        output.status
-                    )));
+                    return Err(BotError::ConvertingFailed(format!("Converting failed: {}", output.status)));
                 }
 
                 debug!("{:?}", output);

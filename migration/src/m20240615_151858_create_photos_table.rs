@@ -24,11 +24,7 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Photos::MimeType).string().null())
                     .col(ColumnDef::new(Photos::IsApproved).boolean().not_null().default(false))
                     .col(ColumnDef::new(Photos::ChannelMsgId).big_integer().null())
-                    .col(
-                        ColumnDef::new(Photos::CreatedAt)
-                            .timestamp()
-                            .default(Expr::current_timestamp()),
-                    )
+                    .col(ColumnDef::new(Photos::CreatedAt).timestamp().default(Expr::current_timestamp()))
                     .col(ColumnDef::new(Photos::PostedAt).timestamp().null())
                     .to_owned(),
             )
