@@ -82,13 +82,7 @@ impl CallbackHandler {
     async fn approve(&self, photo_doc: &photos::Model) -> Result<()> {
         let redis = RedisManager::global();
 
-        redis
-            .add_queue_item(&json!(QueueMessage {
-                id: photo_doc.uuid,
-                operation: CallbackOperation::Approve,
-                ..Default::default()
-            }))
-            .await;
+        redis.add_queue_item(&json!(QueueMessage::approve(photo_doc.uuid))).await;
 
         self.bot
             .answer_callback_query(self.callback.id.clone())
@@ -109,7 +103,7 @@ impl CallbackHandler {
             self.dialogue.update(GlobalState::DeclinePhoto(State::Reason)).await?;
 
             self.bot
-                .send_message(self.callback.chat_id().unwrap(), "Введите причину отказа:")
+                .send_message(self.callback.chat_id().unwrap(), t!("messages.enter_decline_reason"))
                 .reply_markup(super::markups::get_cancel_markup())
                 .await?;
         };

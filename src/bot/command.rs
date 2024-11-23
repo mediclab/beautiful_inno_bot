@@ -95,7 +95,7 @@ impl CommandHandler {
                 self.dialogue.update(GlobalState::BanUser(State::Reason)).await?;
 
                 self.bot
-                    .send_message(self.msg.chat.id, "Введите причину бана:")
+                    .send_message(self.msg.chat.id, t!("messages.enter_ban_reason"))
                     .reply_markup(super::markups::get_cancel_markup())
                     .await?;
             };

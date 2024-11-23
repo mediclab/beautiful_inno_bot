@@ -1,5 +1,5 @@
 use crate::{
-    bot::{traits::DialogueContext, types::CallbackOperation, Bot, BotDialogue, GlobalState},
+    bot::{traits::DialogueContext, Bot, BotDialogue, GlobalState},
     redis::{types::QueueMessage, RedisManager},
 };
 use anyhow::Result;
@@ -40,11 +40,7 @@ async fn set_reason(bot: Bot, msg: Message, dialogue: BotDialogue) -> Result<()>
         let redis = RedisManager::global();
 
         redis
-            .add_queue_item(&json!(QueueMessage {
-                id: state.photo_id,
-                operation: CallbackOperation::Decline,
-                reason: state.reason
-            }))
+            .add_queue_item(&json!(QueueMessage::decline(state.photo_id, state.reason.unwrap_or_default())))
             .await;
 
         dialogue.update(GlobalState::Idle).await?;

@@ -1,15 +1,13 @@
-use crate::bot::types::{CallbackData, CallbackOperation};
 use crate::bot::{Bot, BotManager};
 use crate::db::entity::prelude::{Ban, Photos, Users};
 use crate::types::CanMention;
-use serde_json::json;
 use teloxide::{
     dispatching::{
         dialogue::{serializer::Json, RedisStorage},
         UpdateHandler,
     },
     prelude::*,
-    types::{Document, InlineKeyboardButton, InlineKeyboardMarkup, InputFile, MessageKind},
+    types::{Document, InputFile, MessageKind},
 };
 
 use super::GlobalState;
@@ -79,24 +77,7 @@ impl MessageHandler {
             .bot
             .send_document(ChatId(bot.get_admin_id()), InputFile::file_id(doc.to_owned().file.id))
             .caption(format!("Автор: {}", self.msg.from.as_ref().unwrap().mention_or_url()))
-            .reply_markup(InlineKeyboardMarkup::new(vec![vec![
-                InlineKeyboardButton::callback(
-                    "👍 Запостить",
-                    json!(CallbackData {
-                        operation: CallbackOperation::Approve,
-                        document: Some(model.uuid)
-                    })
-                    .to_string(),
-                ),
-                InlineKeyboardButton::callback(
-                    "👎 Отказать",
-                    json!(CallbackData {
-                        operation: CallbackOperation::Decline,
-                        document: Some(model.uuid)
-                    })
-                    .to_string(),
-                ),
-            ]]))
+            .reply_markup(super::markups::get_document_markup(&model))
             .await?;
 
         model.update_msg_id(msg.id.0).await;
