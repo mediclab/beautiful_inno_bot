@@ -3,17 +3,18 @@ use crate::redis::subscriber::MessageHandler;
 use backon::{ConstantBuilder, Retryable};
 use envconfig::Envconfig;
 use once_cell::sync::OnceCell;
-use redis::AsyncCommands;
-use redis::{aio::MultiplexedConnection, Client as RedisClient};
+use redis::{aio::MultiplexedConnection, AsyncCommands, Client as RedisClient};
 use redis_work_queue::{Item, KeyPrefix, WorkQueue};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::{json, Value};
-use std::fmt::{Debug, Formatter};
-use std::time::Duration;
+use std::{
+    fmt::{Debug, Formatter},
+    time::Duration,
+};
 use types::QueueMessage;
 
 mod subscriber;
-pub mod types;
+pub(crate) mod types;
 
 pub static INSTANCE: OnceCell<RedisManager> = OnceCell::new();
 

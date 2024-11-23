@@ -1,4 +1,4 @@
-use crate::bot::types::{CallbackOperation, FileType, PhotoToUpload};
+use crate::bot::types::{FileType, PhotoToUpload};
 use crate::bot::{BotConfig, BotManager};
 use crate::db::entity::photos::Model;
 use crate::db::entity::prelude::Photos;
@@ -9,6 +9,8 @@ use teloxide::{
     prelude::*,
     types::{InputFile, InputMedia, InputMediaDocument},
 };
+
+use super::types::QueueOperation;
 
 #[derive(Clone, Debug)]
 pub struct MessageHandler {
@@ -25,13 +27,12 @@ impl MessageHandler {
     pub async fn handle(&self, message: &QueueMessage) -> Result<()> {
         if let Some(doc) = &Photos::get_by_id(message.id).await {
             match message.operation {
-                CallbackOperation::Approve => {
+                QueueOperation::Approve => {
                     self.approve(doc).await?;
                 }
-                CallbackOperation::Decline => {
+                QueueOperation::Decline => {
                     self.decline(doc, &message.reason).await?;
                 }
-                _ => {}
             };
         } else {
             error!("Can't find photo by uuid = {}", message.id);
@@ -71,13 +72,15 @@ impl MessageHandler {
         let mut captions = photo_to_upload.get_exif_info();
         captions.push(format!("👤 Автор: {}", model.user().await.mention_or_url()));
 
-        let caption = captions.join("\n");
         let original = InputFile::file(original_path).file_name(format!("original.{}", file_type.get_extension()));
         let original_converted = InputFile::file(original_converted_path).file_name("converted_original.jpg");
         let photo = InputFile::file(photo_path);
         let thumb = InputFile::file(thumb_path);
 
-        let msg = bot.send_photo(ChatId(self.bot_manager.get_group_id()), photo).caption(caption).await?;
+        let msg = bot
+            .send_photo(ChatId(self.bot_manager.get_group_id()), photo)
+            .caption(captions.join("\n"))
+            .await?;
 
         match file_type {
             FileType::Heic => {

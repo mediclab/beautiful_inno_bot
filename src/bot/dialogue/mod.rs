@@ -38,7 +38,9 @@ async fn cancel_callback(bot: Bot, callback: CallbackQuery, dialogue: BotDialogu
     if let CallbackOperation::Cancel = data.operation {
         dialogue.update(GlobalState::Idle).await?;
 
-        bot.answer_callback_query(callback.id.clone()).text("Операция отменена").await?;
+        bot.answer_callback_query(callback.id.clone())
+            .text(t!("messages.operation_canceled"))
+            .await?;
         bot.delete_message(callback.chat_id().unwrap(), callback.message.unwrap().id()).await?;
     };
 

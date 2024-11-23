@@ -8,13 +8,12 @@ use uuid::Uuid;
 use crate::exif::ExifLoader;
 use crate::image::Image;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum CallbackOperation {
     #[serde(rename = "a")]
     Approve,
     #[serde(rename = "d")]
     Decline,
-    #[default]
     #[serde(rename = "c")]
     Cancel,
 }
