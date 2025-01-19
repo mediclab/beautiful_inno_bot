@@ -8,7 +8,7 @@ env:
   IMAGE_NAME: "${{ secrets.DOCKER_HOME_HOST }}/mediclab/beautiful_inno_bot"
 
 jobs:
-  build:
+  build-image:
     strategy:
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm]
@@ -32,22 +32,46 @@ jobs:
           echo "::error::Tag version = ${{ env.tag_version }} is not equals version from Cargo.toml = ${{ env.check_version }}"
           exit 1
 
-      - name: Login to Private Docker
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.DOCKER_HOME_HOST }}
-          username: ${{ secrets.DOCKER_HOME_LOGIN }}
-          password: ${{ secrets.DOCKER_HOME_PASSWORD }}
+      - name: Set platform env variable
+        run: |
+          echo "docker_platform=$(if [ ${{ matrix.os }} == \"ubuntu-24.04-arm\" ]; then echo linux/arm64; else echo linux/amd64; fi)" >> $GITHUB_ENV
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           file: ./Dockerfile-prod
           build-args: "BOT_VERSION=${{ env.app_version }}"
-          push: true
           tags: "${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:${{ env.app_version }}"
+          platforms: ${{ env.docker_platform }}
+          push: true
+#          outputs: type=docker,dest=${{ runner.temp }}/image-${{ matrix.os }}.tar
 
-      - name: Curl for update stack on server
-        continue-on-error: true
-        run: |
-          curl -fs -X POST ${{ secrets.CURL_WEBHOOK_URL }}
+
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: image-${{ matrix.os }}
+#          path: ${{ runner.temp }}/image-${{ matrix.os }}.tar
+#
+#  load-images:
+#    runs-on: ubuntu-22.04
+#    needs: build-image
+#    steps:
+#      - name: Login to Private Docker
+#        uses: docker/login-action@v3
+#        with:
+#          registry: ${{ secrets.DOCKER_HOME_HOST }}
+#          username: ${{ secrets.DOCKER_HOME_LOGIN }}
+#          password: ${{ secrets.DOCKER_HOME_PASSWORD }}
+#
+#      - name: Download artifact
+#        uses: actions/download-artifact@v4
+#        with:
+#          pattern: image-*
+#          merge-multiple: true
+#          path: ${{ runner.temp }}
+#
+#      - name: Load image
+#        run: |
+#          find ${{ runner.temp }} -type f -name "image-*.tar" -exec docker load --input {} \;
+#          docker push -a ${{ env.IMAGE_NAME }}
