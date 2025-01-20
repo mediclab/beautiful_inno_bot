@@ -24,15 +24,15 @@ jobs:
 
       - name: Set environment
         run: |
-          echo "app_version=$(cat Cargo.toml | grep -A3 '^\[package\]$' | grep -Po '(?<=^version = ")[^"]*(?=".*)' | tr -dc 0-9)"  >> $GITHUB_ENV
-          echo "tag_version=$(echo ${{ github.event.release.tag_name }} | tr -dc 0-9)" >> $GITHUB_ENV
-          platform=${{ matrix.platform }}
+          echo "APP_VERSION=$(cat Cargo.toml | grep -A3 '^\[package\]$' | grep -Po '(?<=^version = ")[^"]*(?=".*)' | tr -dc 0-9)"  >> $GITHUB_ENV
+          echo "TAG_VERSION=$(echo ${{ github.event.release.tag_name }} | tr -dc 0-9)" >> $GITHUB_ENV
+          platform=${{ matrix.os.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV 
 
       - name: Check versions
-        if: ${{ env.tag_version != env.app_version }}
+        if: ${{ env.TAG_VERSION != env.APP_VERSION }}
         run: |
-          echo "::error::Tag version = ${{ env.tag_version }} is not equals version from Cargo.toml = ${{ env.app_version }}"
+          echo "::error::Tag version = ${{ env.TAG_VERSION }} is not equals version from Cargo.toml = ${{ env.APP_VERSION }}"
           exit 1
 
       - name: Docker meta
@@ -60,12 +60,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           file: ./Dockerfile-prod
-          build-args: "BOT_VERSION=${{ env.app_version }}"
+          build-args: "BOT_VERSION=${{ env.APP_VERSION }}"
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
-#          tags: "${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:${{ env.app_version }}"
           platforms: ${{ matrix.os.platform }}
-#          outputs: type=docker,dest=${{ runner.temp }}/image-${{ matrix.os }}.tar
 
       - name: Export digest
         run: |
@@ -124,32 +122,3 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-
-#      - name: Upload artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: image-${{ matrix.os }}
-#          path: ${{ runner.temp }}/image-${{ matrix.os }}.tar
-#
-#  load-images:
-#    runs-on: ubuntu-22.04
-#    needs: build-image
-#    steps:
-#      - name: Login to Private Docker
-#        uses: docker/login-action@v3
-#        with:
-#          registry: ${{ secrets.DOCKER_HOME_HOST }}
-#          username: ${{ secrets.DOCKER_HOME_LOGIN }}
-#          password: ${{ secrets.DOCKER_HOME_PASSWORD }}
-#
-#      - name: Download artifact
-#        uses: actions/download-artifact@v4
-#        with:
-#          pattern: image-*
-#          merge-multiple: true
-#          path: ${{ runner.temp }}
-#
-#      - name: Load image
-#        run: |
-#          find ${{ runner.temp }} -type f -name "image-*.tar" -exec docker load --input {} \;
-#          docker push -a ${{ env.IMAGE_NAME }}
