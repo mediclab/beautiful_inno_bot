@@ -3,8 +3,8 @@ use crate::db::entity::prelude::{Ban, Photos, Users};
 use crate::types::CanMention;
 use teloxide::{
     dispatching::{
-        dialogue::{serializer::Json, RedisStorage},
         UpdateHandler,
+        dialogue::{RedisStorage, serializer::Json},
     },
     prelude::*,
     types::{Document, InputFile, MessageKind},

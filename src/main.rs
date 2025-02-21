@@ -12,7 +12,7 @@ use dotenv::dotenv;
 use envconfig::Envconfig;
 use std::sync::Arc;
 use teloxide::{
-    dispatching::dialogue::{serializer::Json, RedisStorage},
+    dispatching::dialogue::{RedisStorage, serializer::Json},
     prelude::*,
 };
 

@@ -1,15 +1,15 @@
 use anyhow::Result;
 use teloxide::{
     dispatching::{
-        dialogue::{serializer::Json, GetChatId, RedisStorage},
         UpdateHandler,
+        dialogue::{GetChatId, RedisStorage, serializer::Json},
     },
     prelude::*,
 };
 
 use super::{
-    types::{CallbackData, CallbackOperation},
     Bot, BotDialogue, GlobalState,
+    types::{CallbackData, CallbackOperation},
 };
 
 pub mod ban_user;
