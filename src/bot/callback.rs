@@ -1,23 +1,23 @@
 use crate::bot::{
+    Bot,
     traits::DialogueContext,
     types::{CallbackData, CallbackOperation},
-    Bot,
 };
 use crate::db::entity::{photos, prelude::Photos};
-use crate::redis::{types::QueueMessage, RedisManager};
+use crate::redis::{RedisManager, types::QueueMessage};
 use anyhow::Result;
 use serde_json::json;
 use teloxide::{
     dispatching::{
-        dialogue::{serializer::Json, GetChatId, RedisStorage},
         UpdateHandler,
+        dialogue::{GetChatId, RedisStorage, serializer::Json},
     },
     prelude::*,
 };
 
 use super::{
-    dialogue::{decline_photo::State, types::DeclinePhoto},
     BotDialogue, GlobalState,
+    dialogue::{decline_photo::State, types::DeclinePhoto},
 };
 
 pub struct CallbackHandler {

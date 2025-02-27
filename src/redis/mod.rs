@@ -3,10 +3,10 @@ use crate::redis::subscriber::MessageHandler;
 use backon::{ConstantBuilder, Retryable};
 use envconfig::Envconfig;
 use once_cell::sync::OnceCell;
-use redis::{aio::MultiplexedConnection, AsyncCommands, Client as RedisClient};
+use redis::{AsyncCommands, Client as RedisClient, aio::MultiplexedConnection};
 use redis_work_queue::{Item, KeyPrefix, WorkQueue};
-use serde::{de::DeserializeOwned, Serialize};
-use serde_json::{json, Value};
+use serde::{Serialize, de::DeserializeOwned};
+use serde_json::{Value, json};
 use std::{
     fmt::{Debug, Formatter},
     time::Duration,

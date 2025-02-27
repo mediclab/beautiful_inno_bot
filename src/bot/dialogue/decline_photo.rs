@@ -1,14 +1,14 @@
 use crate::{
-    bot::{traits::DialogueContext, Bot, BotDialogue, GlobalState},
-    redis::{types::QueueMessage, RedisManager},
+    bot::{Bot, BotDialogue, GlobalState, traits::DialogueContext},
+    redis::{RedisManager, types::QueueMessage},
 };
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use teloxide::{
     dispatching::{
-        dialogue::{serializer::Json, GetChatId, RedisStorage},
         UpdateHandler,
+        dialogue::{GetChatId, RedisStorage, serializer::Json},
     },
     prelude::*,
     types::MessageId,
