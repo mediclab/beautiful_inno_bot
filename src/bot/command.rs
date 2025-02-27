@@ -1,11 +1,11 @@
+use crate::Application;
 use crate::bot::{Bot, BotManager};
 use crate::db::entity::prelude::{Ban, Photos};
-use crate::Application;
 use std::sync::Arc;
 use teloxide::{
     dispatching::{
-        dialogue::{serializer::Json, RedisStorage},
         UpdateHandler,
+        dialogue::{RedisStorage, serializer::Json},
     },
     macros::BotCommands,
     prelude::*,

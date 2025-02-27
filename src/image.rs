@@ -40,11 +40,7 @@ impl Image {
         let scale_y = max_size as f32 / width as f32;
         let scale_x = max_size as f32 / height as f32;
 
-        if scale_y > scale_x {
-            scale_x
-        } else {
-            scale_y
-        }
+        if scale_y > scale_x { scale_x } else { scale_y }
     }
 
     pub fn save(&self, path: &Path) -> bool {

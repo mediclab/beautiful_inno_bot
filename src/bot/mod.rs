@@ -5,8 +5,8 @@ use std::{path::Path, thread::sleep, time::Duration};
 use teloxide::{
     adaptors::DefaultParseMode,
     dispatching::{
-        dialogue::{serializer::Json, RedisStorage},
         Dispatcher,
+        dialogue::{RedisStorage, serializer::Json},
     },
     dptree,
     net::Download,

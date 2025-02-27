@@ -1,5 +1,5 @@
 use crate::redis::RedisManager;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 pub trait DialogueContext: Serialize + DeserializeOwned {
     async fn get(user_id: i64) -> Option<Self> {

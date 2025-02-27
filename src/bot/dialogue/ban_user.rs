@@ -1,11 +1,11 @@
-use crate::bot::{traits::DialogueContext, Bot, BotDialogue, GlobalState};
+use crate::bot::{Bot, BotDialogue, GlobalState, traits::DialogueContext};
 use crate::db::entity::prelude::Ban;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use teloxide::{
     dispatching::{
-        dialogue::{serializer::Json, RedisStorage},
         UpdateHandler,
+        dialogue::{RedisStorage, serializer::Json},
     },
     prelude::*,
 };
