@@ -5,6 +5,10 @@ stages:
   - release
 # - deploy
 
+variables:
+  IMAGE_TITLE: "Beautiful INNO Bot"
+  IMAGE_DESCRIPTION: "Bot for posting photos with exif"
+
 default:
   tags:
     - docker
@@ -14,6 +18,7 @@ lint:
   image: $CI_REGISTRY/library/rust:latest
   except:
     - master
+    - tags
   script:
     - cargo fmt --all -- --check
     - cargo clippy -- -D warnings
@@ -32,23 +37,91 @@ prepare_job:
     reports:
       dotenv: variables.env
 
-build_job:
+build_job_amd:
   stage: build
   needs:
     - job: prepare_job
       artifacts: true
   only:
     - master
-  script:
+  before_script:
+    - apk add --no-cache jq
     - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-    - docker build
+    - docker context create tls-environment
+    - docker buildx create --name docker-builder --driver docker-container --use tls-environment
+  script:
+    - docker buildx build
       --build-arg "BOT_VERSION=$APP_VERSION"
-      -f Dockerfile-prod
-      -t $CI_REGISTRY_IMAGE:latest
-      -t $CI_REGISTRY_IMAGE:$APP_VERSION
-      -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+      --label "org.opencontainers.image.title=$IMAGE_TITLE"
+      --label "org.opencontainers.image.description=$IMAGE_DESCRIPTION"
+      --label "org.opencontainers.image.vendor=$GITLAB_USER_LOGIN"
+      --label "org.opencontainers.image.authors=$CI_COMMIT_AUTHOR"
+      --output "type=image,name=$CI_REGISTRY_IMAGE,push-by-digest=true,name-canonical=true,push=true"
+      --metadata-file metadata.json
+      --file Dockerfile-prod
       .
-    - docker push -a $CI_REGISTRY_IMAGE
+    - mkdir -p digests/
+    - digest="$(jq -r '.["containerimage.digest"]' metadata.json)"
+    - touch digests/${digest#sha256:}
+  artifacts:
+    paths:
+      - digests/*
+    expire_in: 1 day
+
+build_job_arm:
+  stage: build
+  tags:
+    - arm64
+  needs:
+    - job: prepare_job
+      artifacts: true
+  only:
+    - master
+  before_script:
+    - apk add --no-cache jq
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+    - docker context create tls-environment
+    - docker buildx create --name docker-builder --driver docker-container --use tls-environment
+  script:
+    - docker buildx build
+      --build-arg "BOT_VERSION=$APP_VERSION"
+      --label "org.opencontainers.image.title=$IMAGE_TITLE"
+      --label "org.opencontainers.image.description=$IMAGE_DESCRIPTION"
+      --label "org.opencontainers.image.vendor=$GITLAB_USER_LOGIN"
+      --label "org.opencontainers.image.authors=$CI_COMMIT_AUTHOR"
+      --output "type=image,name=$CI_REGISTRY_IMAGE,push-by-digest=true,name-canonical=true,push=true"
+      --metadata-file metadata.json
+      --file Dockerfile-prod
+      .
+    - mkdir -p digests/
+    - digest="$(jq -r '.["containerimage.digest"]' metadata.json)"
+    - touch digests/${digest#sha256:}
+  artifacts:
+    paths:
+      - digests/*
+    expire_in: 1 day
+
+manifest_merge:
+  stage: build
+  needs:
+    - job: prepare_job
+      artifacts: true
+    - job: build_job_arm
+      artifacts: true
+    - job: build_job_amd
+      artifacts: true
+  only:
+    - master
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
+  script:
+    - cd digests
+    - docker buildx imagetools create
+      --tag $CI_REGISTRY_IMAGE:latest
+      --tag $CI_REGISTRY_IMAGE:$APP_VERSION
+      --tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+      $(printf "$CI_REGISTRY_IMAGE@sha256:%s " *)
+
 
 release_job:
   stage: release
@@ -56,7 +129,7 @@ release_job:
   needs:
     - job: prepare_job
       artifacts: true
-    - job: build_job
+    - job: manifest_merge
   rules:
     - if: $CI_COMMIT_TAG
       when: never
@@ -65,6 +138,6 @@ release_job:
     - echo "running release_job for $APP_VERSION"
   release:
     name: 'Release v.$APP_VERSION'
-    description: 'New release'
+    description: 'Info'
     tag_name: '$APP_VERSION'
     ref: '$CI_COMMIT_SHA'
