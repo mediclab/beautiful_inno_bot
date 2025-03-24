@@ -20,9 +20,8 @@ lint:
     - master
     - tags
   script:
-    - echo $CI_MERGE_REQUEST_LABELS
-#    - cargo fmt --all -- --check
-#    - cargo clippy -- -D warnings
+    - cargo fmt --all -- --check
+    - cargo clippy -- -D warnings
 
 prepare_job:
   stage: prepare
@@ -32,7 +31,7 @@ prepare_job:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
     - echo $CI_MERGE_REQUEST_LABELS
-    - apt install -y jq curl
+    - apt-get update && apt-get install -y jq curl
     - APP_VERSION=$(cat Cargo.toml | grep -A3 '^\[package\]$' | grep -Po '(?<=^version = ")[^"]*(?=".*)')
     - if [ $(git tag -l "$APP_VERSION") ]; then echo "Version $APP_VERSION already exists"; exit 1; fi
     - echo "APP_VERSION=$APP_VERSION" >> variables.env
