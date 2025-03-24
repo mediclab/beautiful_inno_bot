@@ -19,7 +19,6 @@ ENV BOT_VERSION=$BOT_VERSION
 LABEL org.opencontainers.image.base.name="alpine:edge"
 
 COPY --from=builder /app/target/release/beautiful_inno_bot /usr/local/bin/beautiful_inno_bot
-COPY ./locales/ /app
 
 RUN apk --no-cache add ca-certificates openssl libgcc libstdc++ libheif libheif-tools libpq \
     && rm -rf /var/cache/apk/*
