@@ -3,7 +3,7 @@ stages:
   - prepare
   - build
   - release
-# - deploy
+  - deploy
 
 variables:
   IMAGE_TITLE: "Beautiful INNO Bot"
@@ -30,8 +30,7 @@ prepare_job:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - echo $CI_MERGE_REQUEST_LABELS
-    - apt-get update && apt-get install -y jq curl
+    - apt-get update && apt-get install -y jq curl git
     - APP_VERSION=$(cat Cargo.toml | grep -A3 '^\[package\]$' | grep -Po '(?<=^version = ")[^"]*(?=".*)')
     - if [ $(git tag -l "$APP_VERSION") ]; then echo "Version $APP_VERSION already exists"; exit 1; fi
     - echo "APP_VERSION=$APP_VERSION" >> variables.env
@@ -149,3 +148,16 @@ release_job:
       links:
         - name: 'Container Image Tag $APP_VERSION'
           url: "https://$CI_REGISTRY_IMAGE:$APP_VERSION"
+
+deploy:
+  stage: deploy
+  inherit:
+    default: false
+  needs:
+    - job: release_job
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - apt-get update && apt-get install -y jq curl git
+  script:
+    - curl -X POST --max-time 120 --connect-timeout 5 $DEPLOY_URL
