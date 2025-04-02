@@ -148,6 +148,7 @@ release_job:
       links:
         - name: 'Container Image Tag $APP_VERSION'
           url: "https://$CI_REGISTRY_IMAGE:$APP_VERSION"
+          link_type: image
 
 deploy:
   stage: deploy

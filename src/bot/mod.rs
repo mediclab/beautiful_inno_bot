@@ -20,6 +20,7 @@ mod command;
 mod dialogue;
 pub(super) mod markups;
 mod message;
+mod reactions;
 pub(super) mod traits;
 pub(super) mod types;
 
@@ -85,6 +86,7 @@ impl BotManager {
                 .branch(dialogue::scheme())
                 .branch(command::scheme())
                 .branch(message::scheme())
+                .branch(reactions::scheme())
                 .branch(callback::scheme()),
         )
         .dependencies(deps)
