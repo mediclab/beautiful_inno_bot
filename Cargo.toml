@@ -24,8 +24,9 @@ envconfig = "0.11"
 image = "0.25"
 kamadak-exif = "0.6"
 log = "0.4"
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", features = ["tracing"] }
 mime = "0.3"
-pretty_env_logger = "0.5"
 regex = "1.10"
 sea-orm = { version = "1.1", features = [
     "sqlx-postgres",
@@ -34,8 +35,12 @@ sea-orm = { version = "1.1", features = [
     "with-uuid",
     "with-chrono",
 ] }
-sentry = "0.37"
-teloxide = { git = "https://github.com/teloxide/teloxide.git", version = "0.14", branch = "master", features = ["macros", "redis-storage"] }
+sentry = { version = "0.37", features = ["tracing", "anyhow"] }
+teloxide = { git = "https://github.com/mediclab/teloxide.git", branch = "tracing", features = [
+    "macros",
+    "tracing-core",
+    "redis-storage",
+] }
 tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "macros"] }
 uuid = "1.11"
 migration = { path = "migration" }
@@ -49,3 +54,6 @@ backon = "1.2"
 redis-work-queue = "0.3"
 redis = { version = "0.26", features = ["aio", "tokio-comp"] }
 rust-i18n = "3.1"
+
+[replace]
+"teloxide-core:0.11.2" = { git = 'https://github.com/mediclab/teloxide.git', branch = "tracing" }

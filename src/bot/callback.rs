@@ -27,6 +27,7 @@ pub struct CallbackHandler {
 }
 
 impl CallbackHandler {
+    #[tracing::instrument(skip_all)]
     pub async fn handle(bot: Bot, callback: CallbackQuery, dialogue: BotDialogue) -> Result<()> {
         let handler = Self { bot, callback, dialogue };
 
@@ -79,6 +80,7 @@ impl CallbackHandler {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn approve(&self, photo_doc: &photos::Model) -> Result<()> {
         let redis = RedisManager::global();
 
@@ -92,6 +94,7 @@ impl CallbackHandler {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn decline(&self, photo_doc: &photos::Model) -> Result<()> {
         let cmd_user = self.callback.from.id.0 as i64;
         let state = DeclinePhoto {

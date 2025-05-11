@@ -4,7 +4,7 @@ use sea_orm::Set;
 use sea_orm::{entity::prelude::*, sea_query::OnConflict};
 
 #[derive(EnumIter, DeriveActiveEnum, Clone, Debug, PartialEq, Eq, Hash)]
-#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = r#""ReactionType""#)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "ReactionType")]
 pub enum ReactionType {
     #[sea_orm(string_value = "Emoji")]
     Emoji,
@@ -47,6 +47,7 @@ impl Related<super::photos::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Entity {
+    #[tracing::instrument(skip_all)]
     pub async fn get_photos_reactions(photo_uuid: Uuid) -> Vec<Model> {
         let res = Self::find()
             .filter(Column::PhotoUuid.eq(photo_uuid))
@@ -60,6 +61,7 @@ impl Entity {
         })
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn update_reactions(photo_uuid: Uuid, reactions: Vec<Reactions>) -> bool {
         Self::insert_many(reactions.into_iter().map(|r| ActiveModel {
             photo_uuid: Set(photo_uuid),
@@ -78,6 +80,7 @@ impl Entity {
         .is_ok()
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn remove_reactions(reaction_uuids: Vec<Uuid>) -> bool {
         Self::delete_many()
             .filter(Column::Uuid.is_in(reaction_uuids))

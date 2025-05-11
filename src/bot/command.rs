@@ -35,6 +35,7 @@ pub struct CommandHandler {
 }
 
 impl CommandHandler {
+    #[tracing::instrument(skip_all)]
     pub async fn handle(bot: Bot, msg: Message, cmd: BotCommand, app: Arc<Application>, dialogue: BotDialogue) -> anyhow::Result<()> {
         let handler = Self { app, bot, msg, dialogue };
 
@@ -61,6 +62,7 @@ impl CommandHandler {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn help(&self) -> anyhow::Result<()> {
         self.bot
             .send_message(self.msg.chat.id, format!("Версия бота: {}", &self.app.config.version))
@@ -69,12 +71,14 @@ impl CommandHandler {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn start(&self) -> anyhow::Result<()> {
         self.bot.send_message(self.msg.chat.id, t!("messages.start_greeting")).await?;
 
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn ban(&self) -> anyhow::Result<()> {
         let manager = BotManager::global();
         let cmd_user = self.msg.from.as_ref().unwrap().id.0 as i64;

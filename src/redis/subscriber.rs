@@ -24,6 +24,7 @@ impl MessageHandler {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn handle(&self, message: &QueueMessage) -> Result<()> {
         if let Some(doc) = &Photos::get_by_id(message.id).await {
             match message.operation {
@@ -41,6 +42,7 @@ impl MessageHandler {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn approve(&self, model: &Model) -> Result<()> {
         let bot = self.bot_manager.get_bot();
 
@@ -109,6 +111,7 @@ impl MessageHandler {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn decline(&self, model: &Model, reason: &Option<String>) -> Result<()> {
         let bot = self.bot_manager.get_bot();
 

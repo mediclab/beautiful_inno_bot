@@ -111,6 +111,7 @@ impl PhotoToUpload {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn get_exif_info(&self) -> Vec<String> {
         let mut messages: Vec<String> = Vec::with_capacity(5);
 
@@ -136,6 +137,7 @@ impl PhotoToUpload {
         messages
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn convert(&self) -> Result<(), BotError> {
         if !self.doc_path.exists() {
             return Err(BotError::FileNotExists(format!("File {} not exists!", self.doc_path.to_string_lossy())));
@@ -169,6 +171,7 @@ impl PhotoToUpload {
         Ok(())
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn check(&self) -> Result<(), BotError> {
         let mut img = Image::new(&self.photo_path);
         let file_metadata = std::fs::metadata(&self.photo_path);
@@ -214,6 +217,7 @@ impl PhotoToUpload {
         &self.doc_path
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn thumbnail(&self) -> &Path {
         let mut img = Image::new(&self.photo_path);
         img.resize(320).save(&self.thumb_path);
@@ -221,6 +225,7 @@ impl PhotoToUpload {
         &self.thumb_path
     }
 
+    #[tracing::instrument(skip_all)]
     pub fn delete_all(&self) -> bool {
         if std::fs::remove_file(&self.doc_path).is_err() {
             return false;
