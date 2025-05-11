@@ -42,6 +42,7 @@ impl RedisManager {
         INSTANCE.get().expect("RedisManager is not initialized")
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn add_queue_item(&self, item: &Value) {
         let json_item = Item::from_string_data(item.to_string());
         let mut con = self.get_async_connection().await;
@@ -56,6 +57,7 @@ impl RedisManager {
         self.client.get_multiplexed_async_connection().await.expect("Can't get connection")
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_model<T>(&self, key: &str) -> Option<T>
     where
         T: DeserializeOwned,
@@ -69,6 +71,7 @@ impl RedisManager {
         }
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn set_model<T>(&self, key: &str, value: T) -> bool
     where
         T: Serialize,
@@ -76,12 +79,14 @@ impl RedisManager {
         self.set_by_key(key, &json!(value).to_string()).await
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn get_by_key(&self, key: &str) -> Option<String> {
         let mut conn = self.get_async_connection().await;
 
         conn.get(key).await.unwrap_or(None)
     }
 
+    #[tracing::instrument(skip_all)]
     pub async fn set_by_key(&self, key: &str, value: &str) -> bool {
         let mut conn = self.get_async_connection().await;
 
@@ -104,6 +109,9 @@ impl RedisManager {
                     });
 
                     if let Some(item) = job {
+                        let span = info_span!("subscriber::process_message");
+                        let _enter = span.enter();
+
                         let message: QueueMessage = item.data_json().expect("Can't deserialize message");
 
                         info!("Try to process message...");
