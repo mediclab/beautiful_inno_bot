@@ -39,7 +39,6 @@ impl Related<super::users::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Entity {
-    #[tracing::instrument(skip_all)]
     pub async fn add(model: ActiveModel) -> Option<Model> {
         let res = model.insert(Database::global().connection()).await;
 
@@ -52,7 +51,6 @@ impl Entity {
         }
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn get_by_id(uuid: Uuid) -> Option<Model> {
         let res = Self::find_by_id(uuid).one(Database::global().connection()).await;
 
@@ -62,7 +60,6 @@ impl Entity {
         })
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn get_by_msg_id(msg_id: i32) -> Option<Model> {
         let res = Self::find().filter(Column::MsgId.eq(msg_id)).one(Database::global().connection()).await;
 
@@ -72,7 +69,6 @@ impl Entity {
         })
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn get_by_channel_msg_id(msg_id: i32) -> Option<Model> {
         let res = Self::find()
             .filter(Column::ChannelMsgId.eq(msg_id))
@@ -87,7 +83,6 @@ impl Entity {
 }
 
 impl Model {
-    #[tracing::instrument(skip_all)]
     pub async fn approve(&self, msg_id: i32) -> bool {
         let mut model = self.clone().into_active_model();
         model.is_approved = Set(true);
@@ -97,7 +92,6 @@ impl Model {
         Entity::update(model).exec(Database::global().connection()).await.is_ok()
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn update_msg_id(&self, msg_id: i32) -> bool {
         let mut model = self.clone().into_active_model();
         model.msg_id = Set(Some(msg_id as i64));
@@ -105,7 +99,6 @@ impl Model {
         Entity::update(model).exec(Database::global().connection()).await.is_ok()
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn user(&self) -> super::users::Model {
         super::users::Entity::find_by_id(self.user_id)
             .one(Database::global().connection())
@@ -114,7 +107,6 @@ impl Model {
             .unwrap()
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn get_reactions(&self) -> Vec<super::reactions::Model> {
         Reactions::get_photos_reactions(self.uuid).await
     }

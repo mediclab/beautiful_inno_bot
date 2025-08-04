@@ -37,7 +37,6 @@ impl Related<super::photos::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Entity {
-    #[tracing::instrument(skip_all)]
     pub async fn add(model: ActiveModel) -> bool {
         Entity::insert(model)
             .on_conflict(
@@ -53,7 +52,6 @@ impl Entity {
 
 impl Model {
     #[allow(dead_code)]
-    #[tracing::instrument(skip_all)]
     pub async fn ban(&self) -> bool {
         super::ban::Entity::insert(super::ban::ActiveModel {
             user_id: Set(self.user_id),

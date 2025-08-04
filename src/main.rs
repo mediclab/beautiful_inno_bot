@@ -1,5 +1,5 @@
 #[macro_use]
-extern crate tracing;
+extern crate log;
 #[macro_use]
 extern crate rust_i18n;
 
@@ -15,7 +15,6 @@ use teloxide::{
     dispatching::dialogue::{RedisStorage, serializer::Json},
     prelude::*,
 };
-use tracing_subscriber::prelude::*;
 
 mod bot;
 mod db;
@@ -60,17 +59,13 @@ i18n!("locales", fallback = "ru");
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    pretty_env_logger::init_timed();
+
     let _guard = sentry::init(sentry::ClientOptions {
         release: sentry::release_name!(),
         traces_sample_rate: 1.0,
         ..Default::default()
     });
-
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer())
-        .with(sentry::integrations::tracing::layer().enable_span_attributes())
-        .with(tracing_subscriber::EnvFilter::from_default_env().add_directive("tokio_cron_scheduler=warn".parse().unwrap()))
-        .init();
 
     let app = Arc::new(Application::new());
 

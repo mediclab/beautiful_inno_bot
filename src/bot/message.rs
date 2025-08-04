@@ -20,7 +20,6 @@ pub struct MessageHandler {
 const MAX_FILE_SIZE: u32 = 15 * 1024 * 1024;
 
 impl MessageHandler {
-    #[tracing::instrument(skip_all)]
     pub async fn handle(bot: Bot, msg: Message) -> anyhow::Result<()> {
         let handler = Self { bot, msg };
 
@@ -39,7 +38,6 @@ impl MessageHandler {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
     async fn private(&self) -> anyhow::Result<()> {
         if let Some(doc) = self.msg.document() {
             if let Some(doc_mime) = doc.to_owned().mime_type {
@@ -65,7 +63,6 @@ impl MessageHandler {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
     async fn send_to_moderation(&self, doc: &Document) -> anyhow::Result<()> {
         let bot = BotManager::global();
         let model = match Photos::add(self.msg.clone().into()).await {

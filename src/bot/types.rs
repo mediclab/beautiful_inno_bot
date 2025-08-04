@@ -111,17 +111,16 @@ impl PhotoToUpload {
         }
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_exif_info(&self) -> Vec<String> {
         let mut messages: Vec<String> = Vec::with_capacity(5);
 
         if let Ok(exif_info) = ExifLoader::new(&self.doc_path) {
             if let Some(maker_model) = exif_info.get_maker_model() {
-                messages.push(format!("📸 Снято на: {}", maker_model))
+                messages.push(format!("📸 Снято на: {maker_model}"))
             }
 
             if let Some(afp_info) = exif_info.get_photo_info_string() {
-                messages.push(format!("ℹ️ {}", afp_info))
+                messages.push(format!("ℹ️ {afp_info}"))
             }
 
             if let Some(_software) = exif_info.get_software() {
@@ -137,7 +136,6 @@ impl PhotoToUpload {
         messages
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn convert(&self) -> Result<(), BotError> {
         if !self.doc_path.exists() {
             return Err(BotError::FileNotExists(format!("File {} not exists!", self.doc_path.to_string_lossy())));
@@ -152,12 +150,12 @@ impl PhotoToUpload {
 
             if let Ok(output) = out {
                 if !output.status.success() {
-                    error!("Convert failed: {:?}", output);
+                    error!("Convert failed: {output:?}");
 
                     return Err(BotError::ConvertingFailed(format!("Converting failed: {}", output.status)));
                 }
 
-                debug!("{:?}", output);
+                debug!("{output:?}");
 
                 std::fs::copy(&self.photo_path, &self.jpeg_path).unwrap_or_default();
             }
@@ -171,13 +169,12 @@ impl PhotoToUpload {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn check(&self) -> Result<(), BotError> {
         let mut img = Image::new(&self.photo_path);
         let file_metadata = std::fs::metadata(&self.photo_path);
 
         if let Err(e) = file_metadata {
-            return Err(BotError::GetMetadataFailed(format!("Get metadata failed: {}", e)));
+            return Err(BotError::GetMetadataFailed(format!("Get metadata failed: {e}")));
         }
 
         if file_metadata.unwrap().len() > 10 * 1024 * 1024 {
@@ -193,7 +190,7 @@ impl PhotoToUpload {
         if width > 4000 || height > 4000 {
             let scale = img.get_scaling(4000);
 
-            info!("Photo is over 4000 px. Scailing to {}x", &scale);
+            info!("Photo is over 4000 px. Scailing to {scale}x");
 
             if !img.scale(scale).save(&self.photo_path) {
                 error!("Scaling failed!");
@@ -217,7 +214,6 @@ impl PhotoToUpload {
         &self.doc_path
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn thumbnail(&self) -> &Path {
         let mut img = Image::new(&self.photo_path);
         img.resize(320).save(&self.thumb_path);
@@ -225,7 +221,6 @@ impl PhotoToUpload {
         &self.thumb_path
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn delete_all(&self) -> bool {
         if std::fs::remove_file(&self.doc_path).is_err() {
             return false;

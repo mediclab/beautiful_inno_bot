@@ -7,14 +7,12 @@ pub struct Image {
 }
 
 impl Image {
-    #[tracing::instrument(skip_all)]
     pub fn new(path: &Path) -> Self {
         Image {
             im: img::open(path).unwrap(),
         }
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn scale(&mut self, ex: f32) -> &mut Image {
         let max_px = if self.im.width() > self.im.height() {
             (self.im.width() as f32 * ex) as u32
@@ -27,19 +25,16 @@ impl Image {
         self
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn resize(&mut self, px: u32) -> &mut Image {
         self.im = self.im.thumbnail(px, px);
 
         self
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_size(&self) -> (u32, u32) {
         (self.im.width(), self.im.height())
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_scaling(&self, max_size: u32) -> f32 {
         let (width, height) = self.get_size();
         let scale_y = max_size as f32 / width as f32;
@@ -48,7 +43,6 @@ impl Image {
         if scale_y > scale_x { scale_x } else { scale_y }
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn save(&self, path: &Path) -> bool {
         self.im.save(path).is_ok()
     }
