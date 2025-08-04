@@ -33,7 +33,6 @@ impl Related<super::users::Entity> for Entity {
 impl ActiveModelBehavior for ActiveModel {}
 
 impl Entity {
-    #[tracing::instrument(skip_all)]
     pub async fn user(user_id: i64, reason: &str) -> bool {
         Entity::insert(ActiveModel {
             user_id: Set(user_id),
@@ -45,7 +44,6 @@ impl Entity {
         .is_ok()
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn exists(user_id: i64) -> bool {
         Entity::find()
             .filter(Column::UserId.eq(user_id))

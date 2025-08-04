@@ -97,7 +97,7 @@ impl BotManager {
     }
 
     pub async fn download_doc(&self, doc_id: &str, save_path: &Path) -> anyhow::Result<String> {
-        let doc = self.bot.get_file(doc_id).await?;
+        let doc = self.bot.get_file(doc_id.to_owned().into()).await?;
         let mut file = File::create(&save_path).await?;
 
         self.bot.download_file(&doc.path, &mut file).await?;

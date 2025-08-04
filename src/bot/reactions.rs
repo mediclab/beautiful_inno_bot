@@ -5,7 +5,6 @@ use teloxide::prelude::Update;
 use teloxide::types::{MessageReactionCountUpdated, ReactionType};
 use uuid::Uuid;
 
-#[tracing::instrument(skip_all)]
 pub async fn handle_reactions_count(react: MessageReactionCountUpdated) -> anyhow::Result<()> {
     debug!("Received reaction count updated: {:?}", &react);
 

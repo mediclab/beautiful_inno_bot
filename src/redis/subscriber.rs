@@ -24,7 +24,6 @@ impl MessageHandler {
         }
     }
 
-    #[tracing::instrument(skip_all)]
     pub async fn handle(&self, message: &QueueMessage) -> Result<()> {
         if let Some(doc) = &Photos::get_by_id(message.id).await {
             match message.operation {
@@ -42,7 +41,6 @@ impl MessageHandler {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
     async fn approve(&self, model: &Model) -> Result<()> {
         let bot = self.bot_manager.get_bot();
 
@@ -57,13 +55,13 @@ impl MessageHandler {
         let original_path = photo_to_upload.document_path();
 
         if let Err(e) = self.bot_manager.download_doc(&model.file_id, original_path).await {
-            error!("Error occurred: {:?}", e);
+            error!("Error occurred: {e:?}");
 
             return Ok(());
         }
 
         if let Err(e) = photo_to_upload.convert() {
-            error!("Error occurred: {:?}", e);
+            error!("Error occurred: {e:?}");
 
             return Ok(());
         }
@@ -111,7 +109,6 @@ impl MessageHandler {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
     async fn decline(&self, model: &Model, reason: &Option<String>) -> Result<()> {
         let bot = self.bot_manager.get_bot();
 

@@ -8,7 +8,6 @@ pub struct ExifLoader {
 }
 
 impl ExifLoader {
-    #[tracing::instrument(skip_all)]
     pub fn new(file_path: &Path) -> Result<Self, Error> {
         let file = std::fs::File::open(file_path).expect("I/O Error");
         let mut bufreader = BufReader::new(&file);
@@ -19,7 +18,6 @@ impl ExifLoader {
         }
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_maker(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::Make) {
             return Some(field);
@@ -28,7 +26,6 @@ impl ExifLoader {
         None
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_model(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::Model) {
             return Some(field);
@@ -45,7 +42,6 @@ impl ExifLoader {
     //     None
     // }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_software(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::Software) {
             return Some(field);
@@ -54,43 +50,38 @@ impl ExifLoader {
         None
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_exposure_time(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::ExposureTime) {
-            return Some(format!("{}s", field));
+            return Some(format!("{field}s"));
         }
 
         None
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_focal_number(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::FNumber) {
-            return Some(format!("f/{}", field));
+            return Some(format!("f/{field}"));
         }
 
         None
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_focal_length(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::FocalLength) {
-            return Some(format!("{}mm", field));
+            return Some(format!("{field}mm"));
         }
 
         None
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_iso(&self) -> Option<String> {
         if let Some(field) = self.get_field_string(&Tag::PhotographicSensitivity) {
-            return Some(format!("ISO{}", field));
+            return Some(format!("ISO{field}"));
         }
 
         None
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_photo_info_string(&self) -> Option<String> {
         let infos = vec![self.get_focal_number(), self.get_exposure_time(), self.get_focal_length(), self.get_iso()]
             .into_iter()
@@ -104,7 +95,6 @@ impl ExifLoader {
         None
     }
 
-    #[tracing::instrument(skip_all)]
     pub fn get_maker_model(&self) -> Option<String> {
         let o_maker = self.get_maker();
         let o_model = self.get_model();
@@ -127,7 +117,6 @@ impl ExifLoader {
         }
     }
 
-    #[tracing::instrument(skip_all)]
     fn get_field_string(&self, tag: &Tag) -> Option<String> {
         if let Some(field) = self.exif.get_field(*tag, In::PRIMARY) {
             debug!("{} field: {:?}", field.tag, field.value);

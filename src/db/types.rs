@@ -20,7 +20,7 @@ impl From<Message> for super::entity::photos::ActiveModel {
 
         super::entity::photos::ActiveModel {
             user_id: Set(value.from.as_ref().unwrap().id.0 as i64),
-            file_id: Set(doc.file.id.clone()),
+            file_id: Set(doc.file.id.clone().0),
             mime_type: Set(doc.mime_type.clone().map(|u| u.to_string())),
             ..Default::default()
         }
@@ -43,7 +43,7 @@ impl From<&ReactionCount> for Reactions {
             },
             TgReactionType::CustomEmoji { custom_emoji_id } => Reactions {
                 r#type: ReactionType::Emoji,
-                content: Some(custom_emoji_id.clone()),
+                content: Some(custom_emoji_id.clone().0),
                 count: react.total_count,
             },
             TgReactionType::Paid => Reactions {
@@ -62,7 +62,7 @@ impl From<super::entity::reactions::Model> for TgReactionType {
                 emoji: value.content.unwrap(),
             },
             ReactionType::CustomEmoji => TgReactionType::CustomEmoji {
-                custom_emoji_id: value.content.unwrap(),
+                custom_emoji_id: value.content.unwrap().into(),
             },
             ReactionType::Paid => TgReactionType::Paid,
         }
